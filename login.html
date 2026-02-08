@@ -81,7 +81,6 @@
             display: flex; align-items: center; justify-content: center; gap: 10px;
             cursor: pointer; transition: 0.3s;
         }
-        .google-btn:hover { background: #f1f1f1; transform: scale(1.02); }
         .google-btn img { width: 20px; }
 
         .divider { display: flex; align-items: center; margin: 25px 0; color: #475569; font-size: 0.8rem; }
@@ -105,30 +104,29 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="toggle('login')">دخول</button>
-            <button class="tab-btn" onclick="toggle('signup')">إنشاء حساب</button>
+            <button id="login-tab" class="tab-btn active" onclick="toggle('login')">دخول</button>
+            <button id="signup-tab" class="tab-btn" onclick="toggle('signup')">إنشاء حساب</button>
         </div>
 
         <div id="login-box" class="form-content active">
             <input type="email" id="l-email" placeholder="البريد الإلكتروني">
             <input type="password" id="l-pass" placeholder="كلمة المرور">
+            <div style="text-align: right; margin-bottom: 15px;">
+                <a href="javascript:void(0)" onclick="forgotPassword()" style="color: var(--neon); font-size: 0.8rem; text-decoration: none; opacity: 0.8;">نسيت كلمة المرور؟</a>
+            </div>
             <button class="btn-main" onclick="login()">تسجيل الدخول</button>
         </div>
-<div style="text-align: right; margin-bottom: 15px;">
-    <a href="javascript:void(0)" onclick="forgotPassword()" style="color: var(--neon); font-size: 0.8rem; text-decoration: none; opacity: 0.8;">نسيت كلمة المرور؟</a>
-</div>
         
         <div id="signup-box" class="form-content">
             <input type="text" id="s-name" placeholder="الاسم الكامل">
             <input type="email" id="s-email" placeholder="البريد الإلكتروني">
             <input type="password" id="s-pass" placeholder="كلمة المرور">
-            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(109, 40, 217, 0.1);">
-    <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--royal-cyan);">
-    <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; cursor: pointer;">
-        لقد قرأت وأوافق على <a href="privacy.html#cheat-policy" target="_blank" style="color: var(--royal-cyan); text-decoration: none; font-weight: bold; border-bottom: 1px solid var(--royal-cyan);">سياسات الاستخدام</a>، وأدرك أن أي تلاعب أو غش سيؤدي لحظر حسابي نهائياً.
-    </label>
-</div>
-
+            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border);">
+                <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; text-align: right; line-height: 1.4;">
+                    أوافق على سياسات الاستخدام وأدرك أن الغش يؤدي للحظر.
+                </label>
+            </div>
             <button class="btn-main" onclick="signup()">انشاء حساب</button>
         </div>
 
@@ -140,9 +138,6 @@
         </button>
 
         <div id="msg"></div>
-        <div style="margin-top:20px; font-size:0.7rem; color:#475569;">
-            🛡️ نظام حماية الأجهزة مفعّل (1 حساب لكل جهاز)
-        </div>
     </div>
 
 <script>
@@ -159,11 +154,27 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // التقاط كود الإحالة من الرابط وحفظه فور فتح الصفحة
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
-    if (refCode) {
-        sessionStorage.setItem('referrerId', refCode);
+    function toggle(mode) {
+        document.getElementById('login-box').classList.remove('active');
+        document.getElementById('signup-box').classList.remove('active');
+        document.getElementById('login-tab').classList.remove('active');
+        document.getElementById('signup-tab').classList.remove('active');
+
+        if(mode === 'login') {
+            document.getElementById('login-box').classList.add('active');
+            document.getElementById('login-tab').classList.add('active');
+        } else {
+            document.getElementById('signup-box').classList.add('active');
+            document.getElementById('signup-tab').classList.add('active');
+        }
+    }
+
+    function showStatus(text, color = "#ef4444") {
+        const m = document.getElementById('msg');
+        m.style.display = 'block';
+        m.innerText = text;
+        m.style.color = color;
+        m.style.borderColor = color === "#22c55e" ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)";
     }
 
     function getDeviceID() {
@@ -175,152 +186,78 @@
         return id;
     }
 
-    function toggle(mode) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
-        if(mode === 'login') {
-            document.querySelectorAll('.tab-btn')[0].classList.add('active');
-            document.getElementById('login-box').classList.add('active');
-        } else {
-            document.querySelectorAll('.tab-btn')[1].classList.add('active');
-            document.getElementById('signup-box').classList.add('active');
-        }
+    async function forgotPassword() {
+        const email = document.getElementById('l-email').value;
+        if(!email) return showStatus("اكتب الإيميل في خانة الدخول أولاً");
+        try {
+            await auth.sendPasswordResetEmail(email);
+            showStatus("تم إرسال رابط استعادة الباسوورد لإيميلك", "#22c55e");
+        } catch(e) { showStatus("خطأ في الإيميل"); }
     }
 
-    function showStatus(text) {
-        const m = document.getElementById('msg');
-        m.style.display = 'block'; m.innerText = text;
-    }
-
-    // --- وظيفة منح مكافأة الإحالة (تُستدعى عند النجاح فقط) ---
-    async function checkAndGiveReward() {
-        const referrerId = sessionStorage.getItem('referrerId');
-        if (referrerId) {
-            try {
-                // إضافة 5 عملات للشخص صاحب الرابط
-                await db.collection("users").doc(referrerId).update({
-                    coins: firebase.firestore.FieldValue.increment(5)
-                });
-                sessionStorage.removeItem('referrerId'); // مسح الكود بعد الاستخدام
-                console.log("Referral Reward Granted!");
-            } catch (e) {
-                console.log("Error in referral reward:", e);
-            }
-        }
-    }
-async function forgotPassword() {
-    const email = document.getElementById('l-email').value;
-    
-    if (!email) {
-        showStatus("يرجى كتابة البريد الإلكتروني أولاً في خانة الدخول");
-        return;
-    }
-
-    try {
-        await auth.sendPasswordResetEmail(email);
-        showStatus("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني");
-        // تغيير لون الرسالة للأخضر للتأكيد
-        document.getElementById('msg').style.color = "#22c55e";
-        document.getElementById('msg').style.borderColor = "rgba(34, 197, 94, 0.2)";
-    } catch (e) {
-        showStatus("خطأ: تأكد من صحة البريد الإلكتروني");
-        console.error(e.message);
-    }
-}
-    
-    // --- إنشاء حساب جديد ---
     async function signup() {
-    async function signup() {
-    const name = document.getElementById('s-name').value;
-    const email = document.getElementById('s-email').value;
-    const pass = document.getElementById('s-pass').value;
-    const terms = document.getElementById('terms-check').checked;
+        const name = document.getElementById('s-name').value;
+        const email = document.getElementById('s-email').value;
+        const pass = document.getElementById('s-pass').value;
+        const checked = document.getElementById('terms-check').checked;
 
-    if(!terms) return showStatus("يجب الموافقة على سياسات الاستخدام أولاً");
-    if(!name || !email || pass.length < 6) return showStatus("بيانات غير مكتملة أو كلمة مرور ضعيفة");
+        if(!checked) return showStatus("يجب الموافقة على الشروط");
+        if(pass.length < 6) return showStatus("الباسوورد ضعيف (أقل من 6)");
 
-    try {
-        const devID = getDeviceID();
-        const devCheck = await db.collection("registered_devices").doc(devID).get();
-        if(devCheck.exists) throw new Error("عذراً، هذا الجهاز يمتلك حساباً بالفعل!");
+        try {
+            const devID = getDeviceID();
+            const devCheck = await db.collection("registered_devices").doc(devID).get();
+            if(devCheck.exists) throw new Error("هذا الجهاز مسجل به حساب بالفعل!");
 
-        // 1. إنشاء الحساب في Firebase Auth
-        const res = await auth.createUserWithEmailAndPassword(email, pass);
-        
-        // 2. إرسال إيميل التحقق فوراً
-        await res.user.sendEmailVerification();
-        
-        // 3. إنشاء ملف المستخدم في Firestore
-        await db.collection("users").doc(res.user.uid).set({
-            name: name, 
-            email: email, 
-            balance: 0, 
-            coins: 0, 
-            videosWatchedToday: 0, 
-            lastLoginDate: firebase.firestore.FieldValue.serverTimestamp(),
-            isVerified: false // علامة عشانك كأدمن
-        });
-        
-        // 4. تسجيل الجهاز
-        await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
-        
-        // 5. منح مكافأة الإحالة
-        await checkAndGiveReward();
+            const res = await auth.createUserWithEmailAndPassword(email, pass);
+            await res.user.sendEmailVerification();
 
-        // 6. تسجيل الخروج وإظهار رسالة توجيه
-        await auth.signOut(); 
-        showStatus("✅ تم إنشاء الحساب! يرجى تفعيل إيميلك (افحص البريد الوارد والـ Spam) ثم سجل دخولك.");
-        
-        // اختياري: تنظيف الخانات بعد التسجيل
-        document.getElementById('s-email').value = "";
-        document.getElementById('s-pass').value = "";
-
-    } catch(e) { 
-        showStatus(e.message); 
+            await db.collection("users").doc(res.user.uid).set({
+                name, email, balance: 0, coins: 0, isVerified: false
+            });
+            await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
+            
+            await auth.signOut();
+            showStatus("✅ تم الإنشاء! فعل إيميلك ثم سجل دخولك", "#22c55e");
+        } catch(e) { showStatus(e.message); }
     }
-}
 
-
-    // --- دخول ---
     async function login() {
         const email = document.getElementById('l-email').value;
         const pass = document.getElementById('l-pass').value;
         try {
-            await auth.signInWithEmailAndPassword(email, pass);
+            const res = await auth.signInWithEmailAndPassword(email, pass);
+            if(!res.user.emailVerified) {
+                showStatus("⚠️ فعل إيميلك أولاً!");
+                await auth.signOut();
+                return;
+            }
             window.location.href = "index.html";
         } catch(e) { showStatus("خطأ في بيانات الدخول"); }
     }
 
-    // --- جوجل ---
     async function googleAuth() {
         const provider = new firebase.auth.GoogleAuthProvider();
         try {
             const res = await auth.signInWithPopup(provider);
-            const user = res.user;
             const devID = getDeviceID();
             const devCheck = await db.collection("registered_devices").doc(devID).get();
             
-            if(devCheck.exists && devCheck.data().owner !== user.uid) {
+            if(devCheck.exists && devCheck.data().owner !== res.user.uid) {
                 await auth.signOut();
-                throw new Error("هذا الجهاز مرتبط بحساب آخر!");
+                throw new Error("الجهاز مرتبط بحساب آخر!");
             }
 
-            const userDoc = await db.collection("users").doc(user.uid).get();
-            if(!userDoc.exists) {
-                await db.collection("users").doc(user.uid).set({
-                    name: user.displayName, email: user.email, balance: 0, coins: 0, 
-                    videosWatchedToday: 0, lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+            const doc = await db.collection("users").doc(res.user.uid).get();
+            if(!doc.exists) {
+                await db.collection("users").doc(res.user.uid).set({
+                    name: res.user.displayName, email: res.user.email, balance: 0, coins: 0, isVerified: true
                 });
-                await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
-                
-                // منح مكافأة الإحالة للحسابات الجديدة فقط عبر جوجل
-                await checkAndGiveReward();
+                await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
             }
-            
             window.location.href = "index.html";
         } catch(e) { showStatus(e.message); }
     }
 </script>
-
 </body>
 </html>
