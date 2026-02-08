@@ -114,7 +114,10 @@
             <input type="password" id="l-pass" placeholder="كلمة المرور">
             <button class="btn-main" onclick="login()">تسجيل الدخول</button>
         </div>
-
+<div style="text-align: right; margin-bottom: 15px;">
+    <a href="javascript:void(0)" onclick="forgotPassword()" style="color: var(--neon); font-size: 0.8rem; text-decoration: none; opacity: 0.8;">نسيت كلمة المرور؟</a>
+</div>
+        
         <div id="signup-box" class="form-content">
             <input type="text" id="s-name" placeholder="الاسم الكامل">
             <input type="email" id="s-email" placeholder="البريد الإلكتروني">
@@ -205,7 +208,26 @@
             }
         }
     }
+async function forgotPassword() {
+    const email = document.getElementById('l-email').value;
+    
+    if (!email) {
+        showStatus("يرجى كتابة البريد الإلكتروني أولاً في خانة الدخول");
+        return;
+    }
 
+    try {
+        await auth.sendPasswordResetEmail(email);
+        showStatus("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني");
+        // تغيير لون الرسالة للأخضر للتأكيد
+        document.getElementById('msg').style.color = "#22c55e";
+        document.getElementById('msg').style.borderColor = "rgba(34, 197, 94, 0.2)";
+    } catch (e) {
+        showStatus("خطأ: تأكد من صحة البريد الإلكتروني");
+        console.error(e.message);
+    }
+}
+    
     // --- إنشاء حساب جديد ---
     async function signup() {
         const name = document.getElementById('s-name').value;
