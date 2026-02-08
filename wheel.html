@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>عجلة الحظ الملكية - الإصدار الموثوق</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --accent: #fbbf24;
+            --bg: #0f172a;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: radial-gradient(circle at center, #1e293b 0%, #080c14 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .container {
+            width: 100%; max-width: 400px; display: flex; flex-direction: column;
+            align-items: center; z-index: 5;
+        }
+
+        /* الرصيد */
+        .wallet-bar {
+            display: flex; gap: 15px; margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 12px 25px; border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+        .wallet-bar div { font-size: 0.95rem; font-weight: bold; color: #fff; }
+        .wallet-bar span { color: var(--accent); }
+
+        /* العجلة */
+        .wheel-wrapper {
+            position: relative; width: 310px; height: 310px;
+        }
+
+        #wheelCanvas {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 8px solid #1e293b;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            transition: transform 5s cubic-bezier(0.1, 0, 0, 1);
+            will-change: transform;
+        }
+
+        /* المؤشر الثابت في الأعلى */
+        .indicator {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+            width: 38px; height: 48px; background: var(--accent);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+        }
+
+        /* الأزرار */
+        .btn-spin {
+            width: 85%; padding: 16px; border-radius: 50px; border: none;
+            background: linear-gradient(135deg, #6366f1, #4338ca);
+            color: white; font-size: 1.4rem; font-weight: 800;
+            cursor: pointer; margin-top: 30px;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+            transition: 0.3s;
+        }
+        .btn-spin:disabled { filter: grayscale(1); opacity: 0.5; }
+
+        .nav-links { display: flex; gap: 10px; width: 85%; margin-top: 15px; }
+        .nav-btn {
+            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05); color: #fff; text-decoration: none;
+            text-align: center; font-size: 0.85rem; cursor: pointer;
+        }
+
+        .footer-note { font-size: 0.75rem; color: #94a3b8; margin-top: 15px; text-align: center; }
+
+        /* البطاقة المنبثقة */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        .result-card {
+            background: #1e293b; padding: 35px; border-radius: 30px;
+            text-align: center; border: 2px solid var(--accent); width: 270px;
+        }
+        .prize-name { font-size: 2.6rem; color: var(--accent); font-weight: 900; display: block; margin: 15px 0; }
+        .btn-close { width: 100%; padding: 12px; border-radius: 15px; border: none; background: #fff; color: #000; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="wallet-bar">
+            <div>نقاط: <span id="lblBalance">0</span></div>
+            <div>عملات: <span id="lblCoins">0</span></div>
+        </div>
+
+        <div class="wheel-wrapper">
+            <div class="indicator"></div>
+            <canvas id="wheelCanvas" width="800" height="800"></canvas>
+        </div>
+
+        <button class="btn-spin" id="btnSpin" onclick="handleSpin()">لف العجلة!</button>
+
+        <div class="nav-links">
+            <button class="nav-btn" onclick="location.href='index.html'">لوحه التحكم</button>
+            <button class="nav-btn" onclick="location.href='shop.html'">المتجر</button>
+        </div>
+        
+        <p class="footer-note">أول لفة مجانية، ثم 15 نقطة لكل لفة.</p>
+    </div>
+
+    <div class="overlay" id="overlay">
+        <div class="result-card">
+            <h2 style="margin:0; color:#94a3b8; font-size:1.1rem;">لقد فزت بـ</h2>
+            <span class="prize-name" id="prizeName">-</span>
+            <button class="btn-close" onclick="closePopup()">استلام</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
+            authDomain: "rewardsite-9025d.firebaseapp.com",
+            projectId: "rewardsite-9025d",
+            storageBucket: "rewardsite-9025d.firebasestorage.app",
+            messagingSenderId: "777911247728",
+            appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // 2. Wheel Data
+        const sectors = [
+            { label: "لا شيء", weight: 50, color: "#1e293b", val: 0, type: 'coin' },
+            { label: "200 عملة", weight: 0.2, color: "#ef4444", val: 200, type: 'coin' },
+            { label: "100 عملة", weight: 0.3, color: "#ea580c", val: 100, type: 'coin' },
+            { label: "50 عملة", weight: 0.5, color: "#f59e0b", val: 50, type: 'coin' },
+            { label: "20 عملة", weight: 1, color: "#fbbf24", val: 20, type: 'coin' },
+            { label: "10 عملة", weight: 3, color: "#312e81", val: 10, type: 'coin' },
+            { label: "5 عملات", weight: 5, color: "#4f46e5", val: 5, type: 'coin' },
+            { label: "2 عملة", weight: 10, color: "#334155", val: 2, type: 'coin' },
+            { label: "1 عملة", weight: 10, color: "#1e293b", val: 1, type: 'coin' },
+            { label: "إعادة لف", weight: 20, color: "#4338ca", val: 0, type: 'retry' }
+        ];
+
+        let currentRotation = 0;
+        let userData = { balance: 0, coins: 0, firstSpinFree: true };
+        let isFreeRetry = false;
+        let isSpinning = false;
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const sectorCount = sectors.length;
+        const arc = (2 * Math.PI) / sectorCount;
+
+        // 3. Drawing
+        function draw() {
+            ctx.clearRect(0,0,800,800);
+            sectors.forEach((s, i) => {
+                const angle = i * arc;
+                ctx.save();
+                ctx.beginPath();
+                ctx.fillStyle = s.color;
+                ctx.moveTo(400, 400);
+                ctx.arc(400, 400, 380, angle, angle + arc);
+                ctx.fill();
+                // نصوص القطاعات
+                ctx.translate(400, 400);
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#fff";
+                ctx.font = "bold 34px Arial";
+                ctx.fillText(s.label, 350, 15);
+                ctx.restore();
+            });
+        }
+        draw();
+
+        // 4. Firebase Sync
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                db.collection("users").doc(user.uid).onSnapshot(doc => {
+                    if (doc.exists) {
+                        userData = doc.data();
+                        document.getElementById('lblBalance').innerText = userData.balance || 0;
+                        document.getElementById('lblCoins').innerText = userData.coins || 0;
+                    }
+                });
+            }
+        });
+
+        // 5. Spin Logic
+        async function handleSpin() {
+            if (isSpinning || !auth.currentUser) return;
+
+            const isFree = userData.firstSpinFree !== false;
+            if (!isFree && !isFreeRetry && userData.balance < 15) return alert("رصيد نقاطك غير كافٍ!");
+
+            isSpinning = true;
+            document.getElementById('btnSpin').disabled = true;
+
+            // تحديث قاعدة البيانات
+            if (!isFree && !isFreeRetry) {
+                await db.collection("users").doc(auth.currentUser.uid).update({
+                    balance: firebase.firestore.FieldValue.increment(-15)
+                });
+            } else if (isFree) {
+                await db.collection("users").doc(auth.currentUser.uid).update({ firstSpinFree: false });
+            }
+
+            // اختيار الفائز (الاحتمالات)
+            const winnerIdx = getWeightedWinner();
+            
+            /* الحساب الرياضي الدقيق للتوقف:
+               1. Canvas يبدأ الرسم من الزاوية 0 (الساعة 3).
+               2. المؤشر الثابت في الأعلى (الساعة 12) يقابل الزاوية 270 درجة.
+               3. لجعل القطاع WinnerIdx يتوقف عند 270، نستخدم المعادلة التالية:
+            */
+            const sectorDeg = 360 / sectorCount;
+            const targetPos = 270 - (winnerIdx * sectorDeg) - (sectorDeg / 2);
+            const extraSpins = 360 * 10; // 10 لفات كاملة
+            
+            // نزيد الدوران الحالي لضمان استمرار الدوران للأمام دائماً
+            const finalRotation = currentRotation + extraSpins + ((targetPos - (currentRotation % 360) + 360) % 360);
+            
+            currentRotation = finalRotation;
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            // إعادة تعيين محاولة "إعادة اللف"
+            isFreeRetry = false;
+
+            setTimeout(() => finalize(winnerIdx), 5200);
+        }
+
+        function getWeightedWinner() {
+            let rand = Math.random() * 100;
+            let sum = 0;
+            for (let i = 0; i < sectors.length; i++) {
+                sum += sectors[i].weight;
+                if (rand <= sum) return i;
+            }
+            return 0;
+        }
+
+        async function finalize(idx) {
+            const prize = sectors[idx];
+            document.getElementById('prizeName').innerText = prize.label;
+            
+            if (prize.type === 'retry') {
+                isFreeRetry = true;
+            } else if (prize.val > 0) {
+                await db.collection("users").doc(auth.currentUser.uid).update({
+                    coins: firebase.firestore.FieldValue.increment(prize.val)
+                });
+            }
+
+            document.getElementById('overlay').style.display = 'flex';
+            isSpinning = false;
+            document.getElementById('btnSpin').disabled = false;
+        }
+
+        function closePopup() {
+            document.getElementById('overlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

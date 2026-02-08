@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXP Vault | خزنة المشتريات</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --purple: #7000ff;
+            --bg: #020617;
+            --glass: rgba(15, 23, 42, 0.8);
+            --border: rgba(0, 242, 255, 0.2);
+            --gold: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: white; min-height: 100vh; padding-bottom: 50px; }
+
+        .container { width: 95%; max-width: 500px; margin: 0 auto; padding: 20px; }
+
+        header { text-align: center; margin-bottom: 30px; }
+        header h1 { font-size: 2rem; background: linear-gradient(to left, var(--neon), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 1px; }
+        
+        .vault-header-card {
+            background: linear-gradient(135deg, rgba(112, 0, 255, 0.1), rgba(0, 242, 255, 0.1));
+            border: 1px solid var(--border); padding: 20px; border-radius: 25px;
+            text-align: center; margin-bottom: 25px; backdrop-filter: blur(10px);
+        }
+        .vault-header-card i { font-size: 2.5rem; color: var(--neon); margin-bottom: 10px; text-shadow: 0 0 15px var(--neon); }
+
+        /* ستايل المشتريات */
+        .order-card {
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 20px; padding: 18px; margin-bottom: 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; transition: 0.3s; animation: fadeInUp 0.5s ease forwards;
+        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .order-main { display: flex; align-items: center; gap: 15px; }
+        .icon-box { width: 45px; height: 45px; background: rgba(0, 242, 255, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--neon); font-size: 1.2rem; border: 1px solid var(--border); }
+
+        .info h3 { font-size: 0.9rem; color: #f1f5f9; margin-bottom: 4px; }
+        .info p { font-size: 0.7rem; color: #64748b; }
+
+        .code-display {
+            background: #000; color: var(--neon); padding: 10px 15px; border-radius: 12px;
+            font-family: 'Courier New', monospace; font-weight: 900; border: 1px dashed var(--neon);
+            cursor: pointer; position: relative; font-size: 0.9rem; transition: 0.3s;
+        }
+        .code-display:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
+        .code-display::after { content: 'اضغط للنسخ'; position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.5rem; color: #64748b; opacity: 0; transition: 0.3s; white-space: nowrap; }
+        .code-display:hover::after { opacity: 1; }
+
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state i { font-size: 4rem; color: #1e293b; margin-bottom: 20px; }
+        .empty-state p { color: #64748b; font-weight: 600; }
+
+        .back-home { display: block; width: fit-content; margin: 30px auto; color: var(--neon); text-decoration: none; font-weight: 800; font-size: 0.9rem; transition: 0.3s; }
+        .back-home:hover { opacity: 0.7; transform: scale(1.05); }
+
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 12px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+    <div id="toast">تم النسخ بنجاح!</div>
+
+    <div class="container">
+        <header>
+            <h1>EXP VAULT</h1>
+        </header>
+
+        <div class="vault-header-card">
+            <i class="fas fa-vault"></i>
+            <h3>خزنتك الملكية</h3>
+            <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 5px;">تاريخ عملياتك وأكوادك المشتراة محفوظة هنا للأبد</p>
+        </div>
+
+        <div id="listContainer">
+            <p style="text-align: center; color: #64748b;">جاري استرجاع البيانات...</p>
+        </div>
+
+        <a href="index.html" class="back-home"><i class="fas fa-chevron-right"></i> عودة للرئيسية</a>
+    </div>
+
+<script>
+    // --- إعدادات فايربيز ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
+        authDomain: "rewardsite-9025d.firebaseapp.com",
+        projectId: "rewardsite-9025d",
+        storageBucket: "rewardsite-9025d.firebasestorage.app",
+        messagingSenderId: "777911247728",
+        appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // التحقق من تسجيل الدخول
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            fetchUserOrders(user.uid);
+        } else {
+            window.location.href = "login.html";
+        }
+    });
+
+    async function fetchUserOrders(uid) {
+        const listContainer = document.getElementById('listContainer');
+        
+        try {
+            // جلب البيانات بفلتر واحد فقط لتجنب مشكلة الـ Index
+            const snapshot = await db.collection("valut")
+                .where("buyer_id", "==", uid)
+                .get();
+
+            if (snapshot.empty) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-ghost"></i>
+                        <p>لا توجد مشتريات سابقة حتى الآن!</p>
+                    </div>`;
+                return;
+            }
+
+            // ترتيب البيانات يدوياً (الأحدث أولاً)
+            let myOrders = [];
+            snapshot.forEach(doc => myOrders.push({id: doc.id, ...doc.data()}));
+            
+            myOrders.sort((a, b) => {
+                const dateA = a.purchase_date ? a.purchase_date.toMillis() : 0;
+                const dateB = b.purchase_date ? b.purchase_date.toMillis() : 0;
+                return dateB - dateA;
+            });
+
+            listContainer.innerHTML = ''; // مسح رسالة التحميل
+
+            myOrders.forEach(order => {
+                const date = order.purchase_date ? order.purchase_date.toDate().toLocaleDateString('ar-EG') : 'قديماً';
+                const time = order.purchase_date ? order.purchase_date.toDate().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : '';
+
+                listContainer.innerHTML += `
+                    <div class="order-card">
+                        <div class="order-main">
+                            <div class="icon-box"><i class="fas fa-key"></i></div>
+                            <div class="info">
+                                <h3>كود شحن رقمي</h3>
+                                <p><i class="far fa-calendar-alt"></i> ${date} | ${time}</p>
+                            </div>
+                        </div>
+                        <div class="code-display" onclick="copyToClipboard('${order.pin_code}')">
+                            ${order.pin_code}
+                        </div>
+                    </div>
+                `;
+            });
+
+        } catch (error) {
+            console.error(error);
+            listContainer.innerHTML = `<p style="text-align:center; color: #ef4444;">❌ خطأ في التحميل: ${error.message}</p>`;
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        });
+    }
+</script>
+</body>
+</html>

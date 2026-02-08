@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Auth | الدخول الملكي</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --purple: #7000ff;
+            --bg: #020617;
+            --glass: rgba(15, 23, 42, 0.8);
+            --border: rgba(0, 242, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        
+        body {
+            background: var(--bg);
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; color: white;
+        }
+
+        .bg-animate {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 20% 30%, rgba(112, 0, 255, 0.2), transparent),
+                        radial-gradient(circle at 80% 70%, rgba(0, 242, 255, 0.1), transparent);
+        }
+
+        .auth-card {
+            width: 90%; max-width: 400px; padding: 40px 30px;
+            background: var(--glass); backdrop-filter: blur(20px);
+            border-radius: 35px; border: 1px solid var(--border);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            text-align: center; animation: slideUp 0.8s ease;
+        }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .logo-area i { font-size: 3rem; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin-bottom: 15px; }
+        h2 { font-size: 1.8rem; font-weight: 900; margin-bottom: 10px; letter-spacing: -1px; }
+        p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 30px; }
+
+        .tabs {
+            display: flex; background: rgba(0,0,0,0.3); padding: 5px;
+            border-radius: 15px; margin-bottom: 25px; border: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1; padding: 12px; border: none; background: transparent;
+            color: #64748b; font-weight: 800; cursor: pointer; border-radius: 12px; transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--neon); color: #020617; box-shadow: 0 0 15px var(--neon); }
+
+        .form-content { display: none; }
+        .form-content.active { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        input {
+            width: 100%; padding: 15px; margin-bottom: 15px; background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border); border-radius: 15px; color: white; outline: none;
+            transition: 0.3s; font-size: 0.95rem;
+        }
+        input:focus { border-color: var(--neon); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+
+        .btn-main {
+            width: 100%; padding: 16px; background: linear-gradient(90deg, var(--purple), #9333ea);
+            border: none; border-radius: 15px; color: white; font-weight: 900;
+            cursor: pointer; transition: 0.3s; margin-top: 10px; font-size: 1rem;
+        }
+        .btn-main:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(112, 0, 255, 0.4); }
+
+        .google-btn {
+            width: 100%; padding: 14px; margin-top: 20px; background: white;
+            border: none; border-radius: 15px; color: #000; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; transition: 0.3s;
+        }
+        .google-btn:hover { background: #f1f1f1; transform: scale(1.02); }
+        .google-btn img { width: 20px; }
+
+        .divider { display: flex; align-items: center; margin: 25px 0; color: #475569; font-size: 0.8rem; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); margin: 0 10px; }
+
+        #msg { 
+            margin-top: 20px; font-size: 0.85rem; padding: 10px; border-radius: 12px; display: none;
+            background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-animate"></div>
+
+    <div class="auth-card">
+        <div class="logo-area">
+            <i class="fas fa-rocket"></i>
+            <h2>Elite X-Prime</h2>
+            <p>بوابتك لعالم المكافآت الحصرية</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="toggle('login')">دخول</button>
+            <button class="tab-btn" onclick="toggle('signup')">إنشاء حساب</button>
+        </div>
+
+        <div id="login-box" class="form-content active">
+            <input type="email" id="l-email" placeholder="البريد الإلكتروني">
+            <input type="password" id="l-pass" placeholder="كلمة المرور">
+            <button class="btn-main" onclick="login()">تسجيل الدخول</button>
+        </div>
+
+        <div id="signup-box" class="form-content">
+            <input type="text" id="s-name" placeholder="الاسم الكامل">
+            <input type="email" id="s-email" placeholder="البريد الإلكتروني">
+            <input type="password" id="s-pass" placeholder="كلمة المرور">
+            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(109, 40, 217, 0.1);">
+    <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--royal-cyan);">
+    <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; cursor: pointer;">
+        لقد قرأت وأوافق على <a href="privacy.html#cheat-policy" target="_blank" style="color: var(--royal-cyan); text-decoration: none; font-weight: bold; border-bottom: 1px solid var(--royal-cyan);">سياسات الاستخدام</a>، وأدرك أن أي تلاعب أو غش سيؤدي لحظر حسابي نهائياً.
+    </label>
+</div>
+
+            <button class="btn-main" onclick="signup()">انشاء حساب</button>
+        </div>
+
+        <div class="divider">أو عبر</div>
+
+        <button class="google-btn" onclick="googleAuth()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="google">
+            تسجيل بواسطة جوجل
+        </button>
+
+        <div id="msg"></div>
+        <div style="margin-top:20px; font-size:0.7rem; color:#475569;">
+            🛡️ نظام حماية الأجهزة مفعّل (1 حساب لكل جهاز)
+        </div>
+    </div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
+        authDomain: "rewardsite-9025d.firebaseapp.com",
+        projectId: "rewardsite-9025d",
+        storageBucket: "rewardsite-9025d.firebasestorage.app",
+        messagingSenderId: "777911247728",
+        appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // التقاط كود الإحالة من الرابط وحفظه فور فتح الصفحة
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+        sessionStorage.setItem('referrerId', refCode);
+    }
+
+    function getDeviceID() {
+        let id = localStorage.getItem('elite_dev_id');
+        if(!id) {
+            id = 'DEV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            localStorage.setItem('elite_dev_id', id);
+        }
+        return id;
+    }
+
+    function toggle(mode) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
+        if(mode === 'login') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('login-box').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('signup-box').classList.add('active');
+        }
+    }
+
+    function showStatus(text) {
+        const m = document.getElementById('msg');
+        m.style.display = 'block'; m.innerText = text;
+    }
+
+    // --- وظيفة منح مكافأة الإحالة (تُستدعى عند النجاح فقط) ---
+    async function checkAndGiveReward() {
+        const referrerId = sessionStorage.getItem('referrerId');
+        if (referrerId) {
+            try {
+                // إضافة 5 عملات للشخص صاحب الرابط
+                await db.collection("users").doc(referrerId).update({
+                    coins: firebase.firestore.FieldValue.increment(5)
+                });
+                sessionStorage.removeItem('referrerId'); // مسح الكود بعد الاستخدام
+                console.log("Referral Reward Granted!");
+            } catch (e) {
+                console.log("Error in referral reward:", e);
+            }
+        }
+    }
+
+    // --- إنشاء حساب جديد ---
+    async function signup() {
+        const name = document.getElementById('s-name').value;
+        const email = document.getElementById('s-email').value;
+        const pass = document.getElementById('s-pass').value;
+        const terms = document.getElementById('terms-check').checked;
+
+        if(!terms) return showStatus("يجب الموافقة على سياسات الاستخدام أولاً");
+        if(!name || !email || pass.length < 6) return showStatus("بيانات غير مكتملة أو كلمة مرور ضعيفة");
+
+        try {
+            const devID = getDeviceID();
+            const devCheck = await db.collection("registered_devices").doc(devID).get();
+            if(devCheck.exists) throw new Error("عذراً، هذا الجهاز يمتلك حساباً بالفعل!");
+
+            const res = await auth.createUserWithEmailAndPassword(email, pass);
+            
+            // إنشاء ملف المستخدم
+            await db.collection("users").doc(res.user.uid).set({
+                name: name, email: email, balance: 0, coins: 0, 
+                videosWatchedToday: 0, lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // تسجيل الجهاز
+            await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
+            
+            // منح مكافأة الإحالة (لو موجودة)
+            await checkAndGiveReward();
+
+            window.location.href = "index.html";
+        } catch(e) { showStatus(e.message); }
+    }
+
+    // --- دخول ---
+    async function login() {
+        const email = document.getElementById('l-email').value;
+        const pass = document.getElementById('l-pass').value;
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+            window.location.href = "index.html";
+        } catch(e) { showStatus("خطأ في بيانات الدخول"); }
+    }
+
+    // --- جوجل ---
+    async function googleAuth() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            const res = await auth.signInWithPopup(provider);
+            const user = res.user;
+            const devID = getDeviceID();
+            const devCheck = await db.collection("registered_devices").doc(devID).get();
+            
+            if(devCheck.exists && devCheck.data().owner !== user.uid) {
+                await auth.signOut();
+                throw new Error("هذا الجهاز مرتبط بحساب آخر!");
+            }
+
+            const userDoc = await db.collection("users").doc(user.uid).get();
+            if(!userDoc.exists) {
+                await db.collection("users").doc(user.uid).set({
+                    name: user.displayName, email: user.email, balance: 0, coins: 0, 
+                    videosWatchedToday: 0, lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
+                
+                // منح مكافأة الإحالة للحسابات الجديدة فقط عبر جوجل
+                await checkAndGiveReward();
+            }
+            
+            window.location.href = "index.html";
+        } catch(e) { showStatus(e.message); }
+    }
+</script>
+
+</body>
+</html>
