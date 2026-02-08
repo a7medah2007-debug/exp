@@ -477,6 +477,105 @@ function runVideoProcess() {
     let timeLeft = 30; 
     const timerDisplay = document.getElementById('timer-overlay');
     updateUI("⏳يرجي مشاهده الاعلان بالكامل..", true);
+<script>
+// إعدادات فايربيز (سليمة كما هي)
+const firebaseConfig = {
+    apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
+    authDomain: "rewardsite-9025d.firebaseapp.com",
+    projectId: "rewardsite-9025d",
+    storageBucket: "rewardsite-9025d.firebasestorage.app",
+    messagingSenderId: "777911247728",
+    appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let userUID = null;
+let isLocked = false; 
+
+// المصفوفة المحدثة (تم حذف الكود المسبب للتعطل)
+const BANNER_CODES = [
+    // 1. إعلان أدسترا التقليدي
+    `<script type="text/javascript">
+	atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
+    <\/script>
+    <script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
+
+    // 2. إعلان أدسترا التفاعلي (Social Bar) - مستقر جداً
+    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>
+    <div id="container-f86cc21e3cdaf12feaeabbc84a827ca1"><\/div>`
+];
+
+const DIRECT_LINKS = [
+    "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", 
+    "https://otieu.com/4/10586232" 
+];
+
+function getRandomDirectLink() {
+    return DIRECT_LINKS[Math.floor(Math.random() * DIRECT_LINKS.length)];
+}
+
+function displayRandomBanner() {
+    try {
+        const slot = document.getElementById('ad-slot');
+        if(!slot) return;
+        const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
+        
+        // استخدام innerHTML مباشرة لتقليل استهلاك الذاكرة ومنع Freeze المتصفح
+        slot.innerHTML = randomCode; 
+    } catch (e) {
+        console.log("Ad Blocked or Error");
+    }
+}
+
+auth.onAuthStateChanged(user => {
+    if (user) { 
+        userUID = user.uid; 
+        startSync(); 
+        // عرض الإعلان بعد التأكد من استقرار فايربيز
+        setTimeout(displayRandomBanner, 2000);
+    } else {
+        document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
+    }
+});
+
+function startSync() {
+    if(!userUID) return;
+    db.collection("users").doc(userUID).onSnapshot(doc => {
+        if (!doc.exists) return;
+        if (isLocked) return;
+
+        const data = doc.data();
+        document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
+        document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
+        
+        const now = Date.now();
+        const lastTime = data.lastAdTime ? data.lastAdTime.toMillis() : 0;
+        const diff = now - lastTime;
+        const waitTime = 30000; 
+
+        if (data.videosWatchedToday >= 15) {
+            updateUI("انتهت مهمات اليوم!", true);
+        } else if (diff < waitTime && diff > 0) {
+            updateUI(` انتظر 30 ثانيه للتحضير`, true);
+            setTimeout(() => { startSync(); }, waitTime - diff + 500); 
+        } else {
+            updateUI("جاهز لبدء المهمة", false);
+            isLocked = false; 
+        }
+    }, err => {
+        console.error("Sync Error");
+    });
+}
+
+function runVideoProcess() {
+    isLocked = true; 
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('timer-overlay').style.display = 'block';
+    let timeLeft = 30; 
+    const timerDisplay = document.getElementById('timer-overlay');
+    updateUI("⏳يرجي مشاهده الاعلان بالكامل..", true);
 
     const countdown = setInterval(() => {
         timerDisplay.innerText = timeLeft + "s";
@@ -495,10 +594,12 @@ async function collectReward() {
     if (!userUID) return;
     const rewardBtn = document.getElementById('rewardBtn');
     const chosenDirectLink = getRandomDirectLink();
+    
+    // فتح الرابط المباشر (تبديل عشوائي بين أدسترا ومونيتاج)
     const newWindow = window.open(chosenDirectLink, '_blank');
     
     rewardBtn.style.display = 'none';
-    updateUI('<div class="loader"></div> جاري حفظ النقاط...', true);
+    updateUI('جاري حفظ النقاط...', true);
 
     try {
         const userRef = db.collection("users").doc(userUID);
@@ -508,16 +609,14 @@ async function collectReward() {
             lastAdTime: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        updateUI("✅ تمت إضافة 1.00 نقطة بنجاح!", false);
-
-        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        if (!newWindow || newWindow.closed) {
              setTimeout(() => { window.location.href = chosenDirectLink; }, 500);
         } else {
              setTimeout(() => { location.reload(); }, 1500);
         }
     } catch(e) {
         isLocked = false;
-        updateUI("❌ فشل التسجيل، حاول مرة أخرى", false);
+        updateUI("❌ فشل التسجيل", false);
         rewardBtn.style.display = 'block';
     }
 }
@@ -529,6 +628,7 @@ function updateUI(text, btnState) {
     if(startBtn) startBtn.disabled = btnState;
 }
 </script>
+
 
 </body>
 </html>
