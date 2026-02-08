@@ -230,36 +230,56 @@ async function forgotPassword() {
     
     // --- إنشاء حساب جديد ---
     async function signup() {
-        const name = document.getElementById('s-name').value;
-        const email = document.getElementById('s-email').value;
-        const pass = document.getElementById('s-pass').value;
-        const terms = document.getElementById('terms-check').checked;
+    async function signup() {
+    const name = document.getElementById('s-name').value;
+    const email = document.getElementById('s-email').value;
+    const pass = document.getElementById('s-pass').value;
+    const terms = document.getElementById('terms-check').checked;
 
-        if(!terms) return showStatus("يجب الموافقة على سياسات الاستخدام أولاً");
-        if(!name || !email || pass.length < 6) return showStatus("بيانات غير مكتملة أو كلمة مرور ضعيفة");
+    if(!terms) return showStatus("يجب الموافقة على سياسات الاستخدام أولاً");
+    if(!name || !email || pass.length < 6) return showStatus("بيانات غير مكتملة أو كلمة مرور ضعيفة");
 
-        try {
-            const devID = getDeviceID();
-            const devCheck = await db.collection("registered_devices").doc(devID).get();
-            if(devCheck.exists) throw new Error("عذراً، هذا الجهاز يمتلك حساباً بالفعل!");
+    try {
+        const devID = getDeviceID();
+        const devCheck = await db.collection("registered_devices").doc(devID).get();
+        if(devCheck.exists) throw new Error("عذراً، هذا الجهاز يمتلك حساباً بالفعل!");
 
-            const res = await auth.createUserWithEmailAndPassword(email, pass);
-            
-            // إنشاء ملف المستخدم
-            await db.collection("users").doc(res.user.uid).set({
-                name: name, email: email, balance: 0, coins: 0, 
-                videosWatchedToday: 0, lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // تسجيل الجهاز
-            await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
-            
-            // منح مكافأة الإحالة (لو موجودة)
-            await checkAndGiveReward();
+        // 1. إنشاء الحساب في Firebase Auth
+        const res = await auth.createUserWithEmailAndPassword(email, pass);
+        
+        // 2. إرسال إيميل التحقق فوراً
+        await res.user.sendEmailVerification();
+        
+        // 3. إنشاء ملف المستخدم في Firestore
+        await db.collection("users").doc(res.user.uid).set({
+            name: name, 
+            email: email, 
+            balance: 0, 
+            coins: 0, 
+            videosWatchedToday: 0, 
+            lastLoginDate: firebase.firestore.FieldValue.serverTimestamp(),
+            isVerified: false // علامة عشانك كأدمن
+        });
+        
+        // 4. تسجيل الجهاز
+        await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
+        
+        // 5. منح مكافأة الإحالة
+        await checkAndGiveReward();
 
-            window.location.href = "index.html";
-        } catch(e) { showStatus(e.message); }
+        // 6. تسجيل الخروج وإظهار رسالة توجيه
+        await auth.signOut(); 
+        showStatus("✅ تم إنشاء الحساب! يرجى تفعيل إيميلك (افحص البريد الوارد والـ Spam) ثم سجل دخولك.");
+        
+        // اختياري: تنظيف الخانات بعد التسجيل
+        document.getElementById('s-email').value = "";
+        document.getElementById('s-pass').value = "";
+
+    } catch(e) { 
+        showStatus(e.message); 
     }
+}
+
 
     // --- دخول ---
     async function login() {
