@@ -230,34 +230,55 @@
         } catch(e) { showStatus("بيانات الدخول خاطئة"); }
     }
 
-    async function googleAuth() {
+        async function googleAuth() {
         const provider = new firebase.auth.GoogleAuthProvider();
         try {
             const res = await auth.signInWithPopup(provider);
+            const user = res.user;
             const devID = getDeviceID();
-            const devCheck = await db.collection("registered_devices").doc(devID).get();
             
-            if(devCheck.exists && devCheck.data().owner !== res.user.uid) {
-                await auth.signOut();
-                throw new Error("الجهاز مرتبط بحساب آخر!");
+            // 1. فحص حماية الجهاز أولاً
+            const devCheck = await db.collection("registered_devices").doc(devID).get();
+            if(devCheck.exists && devCheck.data().owner !== user.uid) {
+                // ملاحظة: لو الحساب له نفس الإيميل بس الـ UID مختلف (بسبب الربط)، فايربيز بيعالج ده داخلياً
+                // لكن للأمان، لو الحساب اللي داخل مختلف تماماً عن صاحب الجهاز بنطرده
+                if (devCheck.data().owner !== user.uid) {
+                    await auth.signOut();
+                    throw new Error("هذا الجهاز مرتبط بحساب آخر بالفعل!");
+                }
             }
 
-            const doc = await db.collection("users").doc(res.user.uid).get();
-            if(!doc.exists) {
-                await db.collection("users").doc(res.user.uid).set({
-                    name: res.user.displayName, email: res.user.email, balance: 0, coins: 0, isVerified: true
-                });
-                await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
+            // 2. البحث عن بيانات المستخدم في Firestore
+            const userDoc = await db.collection("users").doc(user.uid).get();
+            
+            if(!userDoc.exists) {
+                // إذا كان المستخدم جديد (أو أول مرة يدخل بجوجل لنفس الإيميل)
+                await db.collection("users").doc(user.uid).set({
+                    name: user.displayName, 
+                    email: user.email, 
+                    balance: 0, 
+                    coins: 0, 
+                    isVerified: true, // جوجل دايماً موثق
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true }); // Merge عشان لو الدوكيومنت موجود ميمسحش البيانات القديمة
+
+                // تسجيل الجهاز لصاحب هذا الحساب
+                await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
             }
+            
             window.location.href = "index.html";
+
         } catch(e) { 
             if (e.code === 'auth/popup-closed-by-user') {
-                showStatus("⚠️ تم إلغاء التسجيل");
+                showStatus("⚠️ تم إلغاء تسجيل الدخول");
+            } else if (e.code === 'auth/account-exists-with-different-credential') {
+                showStatus("⚠️ هذا الإيميل مسجل بطريقة أخرى، جرب الدخول بالباسورد");
             } else {
                 showStatus(e.message); 
             }
         }
     }
+
 </script>
 </body>
 </html>
