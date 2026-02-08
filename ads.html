@@ -118,53 +118,58 @@ function displayRandomBanner() {
     const slot = document.getElementById('ad-slot');
     if(!slot) return;
 
-    // "المنقذ": لو الإعلانات التقيلة مظهرتش، ده بيظهر مكانه عشان تضمن الربح
     const fallbackAd = `<a href="${DIRECT_LINKS[0]}" target="_blank" style="text-decoration:none;">
         <div style="width:300px; height:250px; background:linear-gradient(45deg, #050a15, #1e293b); border:1px solid #00d2ff; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer;">
             <div style="font-size:2rem; margin-bottom:10px;">🎁</div>
-            <p style="color:white; font-size:0.8rem;">اضغط هنا وابقي في صفحه الاعلان 10 ثواني لاحتساب المشاهده</p>
+            <p style="color:white; font-size:0.8rem;">اضغط هنا للحصول على مكافأة إضافية</p>
         </div>
     </a>`;
 
     const randomChoice = Math.random();
-    slot.innerHTML = ""; // تنظيف المربع
+    slot.innerHTML = ""; 
 
-    try {
-        if (randomChoice < 0.33) {
-            // كود أدسترا (Adsterra) بطريقة الحقن الصحيحة
-            const s1 = document.createElement('script');
-            s1.type = 'text/javascript';
-            s1.text = `atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };`;
-            const s2 = document.createElement('script');
-            s2.type = 'text/javascript';
-            s2.src = '//www.highperformanceformat.com/invoke.js';
-            slot.appendChild(s1);
-            slot.appendChild(s2);
-        } 
-        else if (randomChoice < 0.66) {
-            // كود مونيتاج (Monetag)
-            const mDiv = document.createElement('div');
-            mDiv.id = "monetag-ad-inner";
-            slot.appendChild(mDiv);
-            const mScript = document.createElement('script');
-            mScript.src = 'https://nap5k.com/tag.min.js';
-            mScript.setAttribute('data-zone', '10586190');
-            mScript.async = true;
-            slot.appendChild(mScript);
-        }
-        else {
-            slot.innerHTML = fallbackAd;
-        }
-    } catch (e) {
+    if (randomChoice < 0.33) {
+        // --- طريقة الـ iframe لأدسترا (أضمن طريقة للظهور) ---
+        const ifr = document.createElement('iframe');
+        ifr.width = "300";
+        ifr.height = "250";
+        ifr.frameBorder = "0";
+        ifr.scrolling = "no";
+        slot.appendChild(ifr);
+        
+        const ifrDoc = ifr.contentWindow.document;
+        ifrDoc.open();
+        ifrDoc.write(`
+            <body style="margin:0;padding:0;">
+                <script type="text/javascript">
+                    atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
+                </script>
+                <script type="text/javascript" src="https://www.highperformanceformat.com/invoke.js"></script>
+            </body>
+        `);
+        ifrDoc.close();
+    } 
+    else if (randomChoice < 0.66) {
+        // --- مونيتاج (Monetag) ---
+        const mDiv = document.createElement('div');
+        mDiv.id = "monetag-ad-inner";
+        slot.appendChild(mDiv);
+        const mScript = document.createElement('script');
+        mScript.src = 'https://nap5k.com/tag.min.js';
+        mScript.setAttribute('data-zone', '10586190');
+        mScript.async = true;
+        slot.appendChild(mScript);
+    }
+    else {
         slot.innerHTML = fallbackAd;
     }
 
-    // فحص أمان: لو مفيش إعلان ظهر بعد 4 ثواني، شغل المنقذ فوراً
+    // فحص نهائي
     setTimeout(() => {
         if (slot.innerHTML === "" || slot.offsetHeight < 20) {
             slot.innerHTML = fallbackAd;
         }
-    }, 4000);
+    }, 5000);
 }
 
 // مراقبة حالة تسجيل الدخول (نفس منطقك)
