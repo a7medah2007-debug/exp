@@ -243,13 +243,107 @@ function startSync() {
         } else {
             // أول ما الوقت يخلص، الزرار بيرجع يشتغل والرسالة بتختفي
             updateUI("جاهز لبدء المهمة", false);
+<script>
+// إعدادات فايربيز
+const firebaseConfig = {
+    apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
+    authDomain: "rewardsite-9025d.firebaseapp.com",
+    projectId: "rewardsite-9025d",
+    storageBucket: "rewardsite-9025d.firebasestorage.app",
+    messagingSenderId: "777911247728",
+    appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let userUID = null;
+let isLocked = false; 
+
+// --- [ تحديث: مصفوفة إعلانات البانر ] ---
+const BANNER_CODES = [
+    // 1. إعلان أدسترا التقليدي
+    `<script type="text/javascript">
+	atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
+    <\/script>
+    <script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
+
+    // 2. إعلان مونيتاج In-Page Push (المعدل ليعمل داخل الحاوية)
+    `<div id="monetag-ad-container"></div>
+    <script>
+    (function(s){
+        s.dataset.zone='10586190';
+        s.src='https://nap5k.com/tag.min.js';
+    })([document.getElementById('monetag-ad-container')].filter(Boolean).pop() || document.body.appendChild(document.createElement('script')));
+    <\/script>`,
+
+    // 3. إعلان أدسترا التفاعلي الجديد (Social Bar)
+    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>
+    <div id="container-f86cc21e3cdaf12feaeabbc84a827ca1"><\/div>`
+];
+
+// --- [ تحديث: مصفوفة الروابط المباشرة ] ---
+const DIRECT_LINKS = [
+    "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", // Adsterra
+    "https://otieu.com/4/10586232" // Monetag SmartLink
+];
+
+// دالة اختيار الرابط المباشر العشوائي
+function getRandomDirectLink() {
+    return DIRECT_LINKS[Math.floor(Math.random() * DIRECT_LINKS.length)];
+}
+
+// الدالة التي تعرض إعلان بانر عشوائي في المربع
+function displayRandomBanner() {
+    const slot = document.getElementById('ad-slot');
+    if(!slot) return;
+    const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
+    
+    const range = document.createRange();
+    const fragment = range.createContextualFragment(randomCode);
+    slot.innerHTML = ""; 
+    slot.appendChild(fragment);
+}
+
+auth.onAuthStateChanged(user => {
+    if (user) { 
+        userUID = user.uid; 
+        startSync(); 
+        displayRandomBanner(); 
+    } else {
+        document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
+    }
+});
+
+function startSync() {
+    if(!userUID) return;
+    db.collection("users").doc(userUID).onSnapshot(doc => {
+        if (!doc.exists || isLocked) return;
+        const data = doc.data();
+        
+        document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
+        document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
+        
+        const now = Date.now();
+        const lastTime = data.lastAdTime ? data.lastAdTime.toMillis() : 0;
+        const diff = now - lastTime;
+        const waitTime = 30000; 
+
+        if (data.videosWatchedToday >= 15) {
+            updateUI("انتهت مهمات اليوم!", true);
+        } else if (diff < waitTime && diff > 0) {
+            updateUI(` انتظر 30 ثانيه للتحضير`, true);
+            setTimeout(() => {
+                startSync(); 
+            }, waitTime - diff + 500); 
+        } else {
+            updateUI("جاهز لبدء المهمة", false);
             isLocked = false; 
         }
     }, err => {
         console.error("Sync Error:", err);
     });
 }
-
 
 function runVideoProcess() {
     isLocked = true; 
@@ -280,8 +374,9 @@ async function collectReward() {
 
     const rewardBtn = document.getElementById('rewardBtn');
     
-    // حل مشكلة المتصفح: نفتح الرابط فوراً عند الضغط
-    const newWindow = window.open(ADSTERRA_DIRECT_LINK, '_blank');
+    // --- [ اختيار رابط مباشر عشوائي عند الضغط ] ---
+    const chosenDirectLink = getRandomDirectLink();
+    const newWindow = window.open(chosenDirectLink, '_blank');
     
     rewardBtn.style.display = 'none';
     updateUI('<div class="loader"></div> جاري حفظ النقاط...', true);
@@ -289,7 +384,6 @@ async function collectReward() {
     try {
         const userRef = db.collection("users").doc(userUID);
         
-        // تحديث البيانات في فايربيز
         await userRef.update({
             balance: firebase.firestore.FieldValue.increment(1.0),
             videosWatchedToday: firebase.firestore.FieldValue.increment(1),
@@ -298,12 +392,9 @@ async function collectReward() {
 
         updateUI("✅ تمت إضافة 1.00 نقطة بنجاح!", false);
 
-        // التحقق إذا كان المتصفح منع فتح النافذة
         if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-             // إذا تم منعه، نقوم بتحويل الصفحة الحالية بعد ثانية
-             setTimeout(() => { window.location.href = ADSTERRA_DIRECT_LINK; }, 500);
+             setTimeout(() => { window.location.href = chosenDirectLink; }, 500);
         } else {
-             // إذا فتحت، نعيد تحميل الصفحة الحالية لتحديث البيانات
              setTimeout(() => { location.reload(); }, 1500);
         }
 
@@ -316,8 +407,10 @@ async function collectReward() {
 }
 
 function updateUI(text, btnState) {
-    document.getElementById('msg').innerHTML = text;
-    document.getElementById('startBtn').disabled = btnState;
+    const msgElement = document.getElementById('msg');
+    const startBtn = document.getElementById('startBtn');
+    if(msgElement) msgElement.innerHTML = text;
+    if(startBtn) startBtn.disabled = btnState;
 }
 </script>
 </body>
