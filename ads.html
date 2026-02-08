@@ -153,6 +153,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
 
+
+
 <script>
 // إعدادات فايربيز
 const firebaseConfig = {
@@ -170,268 +172,48 @@ const auth = firebase.auth();
 let userUID = null;
 let isLocked = false; 
 
-    // 1. المصفوفة أولاً
+// المصفوفة المحدثة (تم تبسيطها لضمان عدم توقف المتصفح)
 const BANNER_CODES = [
-    // 1. إعلان أدسترا التقليدي (300x250)
-    `<script type="text/javascript">
-	atOptions = { 'key' : '7a1862d84a08495fc4c9520bfc8c640b', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
-    <\/script>
-    <script type="text/javascript" src="https://ballisticcomainvitation.com/7a1862d84a08495fc4c9520bfc8c640b/invoke.js"><\/script>`,
+    // 1. أدسترا
+    `<script type="text/javascript">atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };<\/script><script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
 
-    // 2. إعلان مونيتاج (In-Page Push)
-    `<div id="monetag-ad-container"></div>
-    <script>
-    (function(s){
-        s.dataset.zone='10586190';
-        s.src='https://nap5k.com/tag.min.js';
-    })([document.getElementById('monetag-ad-container')].filter(Boolean).pop() || document.body.appendChild(document.createElement('script')));
-    <\/script>`,
+    // 2. مونيتاج (طريقة حقن آمنة)
+    `<div id="monetag-ad-inner"></div><script src="https://nap5k.com/tag.min.js" data-zone="10586190" async><\/script>`,
 
-    // 3. إعلان أدسترا الجديد (Social Bar/Native)
-    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>
-    <div id="container-f86cc21e3cdaf12feaeabbc84a827ca1"><\/div>`
+    // 3. أدسترا سوشيال بار
+    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>`
 ];
 
-
-// 2. الرابط المباشر
-const ADSTERRA_DIRECT_LINK = "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f"; 
-
-// 3. الدالة اللي بتعرض الإعلان (بتستخدم المصفوفة)
-function displayRandomBanner() {
-    const slot = document.getElementById('ad-slot');
-    // هنا بنختار العشوائي "لحظة" طلب الإعلان
-    const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
-    
-    const range = document.createRange();
-    const fragment = range.createContextualFragment(randomCode);
-    slot.innerHTML = ""; 
-    slot.appendChild(fragment);
-}
-
-auth.onAuthStateChanged(user => {
-    if (user) { 
-        userUID = user.uid; 
-        startSync(); 
-        displayRandomBanner(); // استدعاء الدالة بعد التأكد من تسجيل الدخول
-    } else {
-        document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
-    }
-});
-
-function startSync() {
-    if(!userUID) return;
-    db.collection("users").doc(userUID).onSnapshot(doc => {
-        if (!doc.exists || isLocked) return;
-        const data = doc.data();
-        
-        document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
-        document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
-        
-        // جلب وقت السيرفر الحالي
-        const now = Date.now();
-        const lastTime = data.lastAdTime ? data.lastAdTime.toMillis() : 0;
-        const diff = now - lastTime;
-        const waitTime = 30000; // 30 ثانية
-
-        if (data.videosWatchedToday >= 15) {
-            updateUI("انتهت مهمات اليوم!", true);
-        } else if (diff < waitTime && diff > 0) {
-            // الرسالة الثابتة
-            updateUI(` انتظر 30 ثانيه للتحضير`, true);
-            
-            // "الزتونة": بنخلي الكود يعيد فحص نفسه أوتوماتيك بعد ما الوقت يخلص
-            setTimeout(() => {
-                startSync(); 
-            }, waitTime - diff + 500); // بينتظر الوقت المتبقي بالظبط + نص ثانية أمان
-        } else {
-            // أول ما الوقت يخلص، الزرار بيرجع يشتغل والرسالة بتختفي
-            updateUI("جاهز لبدء المهمة", false);
-<script>
-// إعدادات فايربيز
-const firebaseConfig = {
-    apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
-    authDomain: "rewardsite-9025d.firebaseapp.com",
-    projectId: "rewardsite-9025d",
-    storageBucket: "rewardsite-9025d.firebasestorage.app",
-    messagingSenderId: "777911247728",
-    appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-let userUID = null;
-let isLocked = false; 
-
-// --- [ تحديث: مصفوفة إعلانات البانر ] ---
-const BANNER_CODES = [
-    // 1. إعلان أدسترا التقليدي
-    `<script type="text/javascript">
-	atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
-    <\/script>
-    <script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
-
-    // 2. إعلان مونيتاج In-Page Push (المعدل ليعمل داخل الحاوية)
-    `<div id="monetag-ad-container"></div>
-    <script>
-    (function(s){
-        s.dataset.zone='10586190';
-        s.src='https://nap5k.com/tag.min.js';
-    })([document.getElementById('monetag-ad-container')].filter(Boolean).pop() || document.body.appendChild(document.createElement('script')));
-    <\/script>`,
-
-    // 3. إعلان أدسترا التفاعلي الجديد (Social Bar)
-    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>
-    <div id="container-f86cc21e3cdaf12feaeabbc84a827ca1"><\/div>`
-];
-
-// --- [ تحديث: مصفوفة الروابط المباشرة ] ---
 const DIRECT_LINKS = [
-    "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", // Adsterra
-    "https://otieu.com/4/10586232" // Monetag SmartLink
+    "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", 
+    "https://otieu.com/4/10586232" 
 ];
 
-// دالة اختيار الرابط المباشر العشوائي
 function getRandomDirectLink() {
     return DIRECT_LINKS[Math.floor(Math.random() * DIRECT_LINKS.length)];
 }
 
-// الدالة التي تعرض إعلان بانر عشوائي في المربع
 function displayRandomBanner() {
     const slot = document.getElementById('ad-slot');
     if(!slot) return;
     const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
     
-    const range = document.createRange();
-    const fragment = range.createContextualFragment(randomCode);
-    slot.innerHTML = ""; 
-    slot.appendChild(fragment);
-}
-
-auth.onAuthStateChanged(user => {
-    if (user) { 
-        userUID = user.uid; 
-        startSync(); 
-        displayRandomBanner(); 
-    } else {
-        document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
-    }
-});
-
-function startSync() {
-    if(!userUID) return;
-    db.collection("users").doc(userUID).onSnapshot(doc => {
-        if (!doc.exists || isLocked) return;
-        const data = doc.data();
-        
-        document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
-        document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
-        
-        const now = Date.now();
-        const lastTime = data.lastAdTime ? data.lastAdTime.toMillis() : 0;
-        const diff = now - lastTime;
-        const waitTime = 30000; 
-
-        if (data.videosWatchedToday >= 15) {
-            updateUI("انتهت مهمات اليوم!", true);
-        } else if (diff < waitTime && diff > 0) {
-            updateUI(` انتظر 30 ثانيه للتحضير`, true);
-            setTimeout(() => {
-                startSync(); 
-            }, waitTime - diff + 500); 
-        } else {
-            updateUI("جاهز لبدء المهمة", false);
-            isLocked = false; 
-        }
-    }, err => {
-        console.error("Sync Error:", err);
-    });
-}
-
-function runVideoProcess() {
-    isLocked = true; 
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('timer-overlay').style.display = 'block';
-    
-    let timeLeft = 30; 
-    const timerDisplay = document.getElementById('timer-overlay');
-    
-    updateUI("⏳يرجي مشاهده الاعلان بالكامل..", true);
-
-    const countdown = setInterval(() => {
-        timerDisplay.innerText = timeLeft + "s";
-        timeLeft--;
-
-        if (timeLeft < 0) {
-            clearInterval(countdown);
-<script>
-// إعدادات فايربيز (كما هي)
-const firebaseConfig = {
-    apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
-    authDomain: "rewardsite-9025d.firebaseapp.com",
-    projectId: "rewardsite-9025d",
-    storageBucket: "rewardsite-9025d.firebasestorage.app",
-    messagingSenderId: "777911247728",
-    appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-let userUID = null;
-let isLocked = false; 
-
-// مصفوفة البانرات
-const BANNER_CODES = [
-    `<script type="text/javascript">
-	atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
-    <\/script>
-    <script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
-
-    `<div id="monetag-ad-container"></div>
-    <script>
-    (function(s){
-        s.dataset.zone='10586190';
-        s.src='https://nap5k.com/tag.min.js';
-    })([document.getElementById('monetag-ad-container')].filter(Boolean).pop() || document.body.appendChild(document.createElement('script')));
-    <\/script>`,
-
-    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>
-    <div id="container-f86cc21e3cdaf12feaeabbc84a827ca1"><\/div>`
-];
-
-const DIRECT_LINKS = [
-    "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", 
-    "https://otieu.com/4/10586232" 
-];
-
-function getRandomDirectLink() {
-    return DIRECT_LINKS[Math.floor(Math.random() * DIRECT_LINKS.length)];
-}
-
-// دالة العرض مع معالجة الأخطاء لضمان عدم توقف الكود
-function displayRandomBanner() {
+    // استخدام contextualFragment لضمان تنفيذ السكريبتات داخل المصفوفة
     try {
-        const slot = document.getElementById('ad-slot');
-        if(!slot) return;
-        const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
         const range = document.createRange();
         const fragment = range.createContextualFragment(randomCode);
         slot.innerHTML = ""; 
         slot.appendChild(fragment);
-    } catch (e) {
-        console.log("Ad Error Bypass"); // تجاهل خطأ الإعلان عشان السيستم ميكملش
-    }
+    } catch(e) { slot.innerHTML = randomCode; }
 }
 
 auth.onAuthStateChanged(user => {
     if (user) { 
         userUID = user.uid; 
+        console.log("User Logged In:", userUID);
         startSync(); 
-        // تأخير الإعلانات 3 ثواني عشان فايربيز يلحق يعرض الرصيد
-        setTimeout(() => {
-            displayRandomBanner(); 
-        }, 3000);
+        // تأخير ظهور الإعلان 3 ثوانٍ لضمان تحميل بيانات فايربيز أولاً
+        setTimeout(displayRandomBanner, 3000); 
     } else {
         document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
     }
@@ -439,34 +221,36 @@ auth.onAuthStateChanged(user => {
 
 function startSync() {
     if(!userUID) return;
+    
+    // المراقبة الحية للبيانات
     db.collection("users").doc(userUID).onSnapshot(doc => {
-        // لو مش Locked والبيانات موجودة، اعرض فوراً
         if (!doc.exists) {
-            console.log("No User Doc Found!");
+            document.getElementById('msg').innerText = "خطأ: لم يتم العثور على حسابك في قاعدة البيانات";
             return;
         }
+        
         if (isLocked) return;
-
         const data = doc.data();
+        
+        // تحديث الواجهة بالبيانات الحقيقية
         document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
         document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
         
-        const now = Date.now();
         const lastTime = data.lastAdTime ? data.lastAdTime.toMillis() : 0;
-        const diff = now - lastTime;
-        const waitTime = 30000; 
+        const diff = Date.now() - lastTime;
 
         if (data.videosWatchedToday >= 15) {
             updateUI("انتهت مهمات اليوم!", true);
-        } else if (diff < waitTime && diff > 0) {
-            updateUI(` انتظر 30 ثانيه للتحضير`, true);
-            setTimeout(() => { startSync(); }, waitTime - diff + 500); 
+        } else if (diff < 30000 && diff > 0) {
+            updateUI(`انتظر للتحضير...`, true);
+            setTimeout(startSync, 30000 - diff + 1000);
         } else {
             updateUI("جاهز لبدء المهمة", false);
             isLocked = false; 
         }
     }, err => {
-        console.error("Firebase Sync Error:", err);
+        document.getElementById('msg').innerText = "خطأ في الاتصال بالقاعدة";
+        console.error(err);
     });
 }
 
@@ -476,105 +260,7 @@ function runVideoProcess() {
     document.getElementById('timer-overlay').style.display = 'block';
     let timeLeft = 30; 
     const timerDisplay = document.getElementById('timer-overlay');
-    updateUI("⏳يرجي مشاهده الاعلان بالكامل..", true);
-<script>
-// إعدادات فايربيز (سليمة كما هي)
-const firebaseConfig = {
-    apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
-    authDomain: "rewardsite-9025d.firebaseapp.com",
-    projectId: "rewardsite-9025d",
-    storageBucket: "rewardsite-9025d.firebasestorage.app",
-    messagingSenderId: "777911247728",
-    appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-let userUID = null;
-let isLocked = false; 
-
-// المصفوفة المحدثة (تم حذف الكود المسبب للتعطل)
-const BANNER_CODES = [
-    // 1. إعلان أدسترا التقليدي
-    `<script type="text/javascript">
-	atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
-    <\/script>
-    <script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
-
-    // 2. إعلان أدسترا التفاعلي (Social Bar) - مستقر جداً
-    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>
-    <div id="container-f86cc21e3cdaf12feaeabbc84a827ca1"><\/div>`
-];
-
-const DIRECT_LINKS = [
-    "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", 
-    "https://otieu.com/4/10586232" 
-];
-
-function getRandomDirectLink() {
-    return DIRECT_LINKS[Math.floor(Math.random() * DIRECT_LINKS.length)];
-}
-
-function displayRandomBanner() {
-    try {
-        const slot = document.getElementById('ad-slot');
-        if(!slot) return;
-        const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
-        
-        // استخدام innerHTML مباشرة لتقليل استهلاك الذاكرة ومنع Freeze المتصفح
-        slot.innerHTML = randomCode; 
-    } catch (e) {
-        console.log("Ad Blocked or Error");
-    }
-}
-
-auth.onAuthStateChanged(user => {
-    if (user) { 
-        userUID = user.uid; 
-        startSync(); 
-        // عرض الإعلان بعد التأكد من استقرار فايربيز
-        setTimeout(displayRandomBanner, 2000);
-    } else {
-        document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
-    }
-});
-
-function startSync() {
-    if(!userUID) return;
-    db.collection("users").doc(userUID).onSnapshot(doc => {
-        if (!doc.exists) return;
-        if (isLocked) return;
-
-        const data = doc.data();
-        document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
-        document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
-        
-        const now = Date.now();
-        const lastTime = data.lastAdTime ? data.lastAdTime.toMillis() : 0;
-        const diff = now - lastTime;
-        const waitTime = 30000; 
-
-        if (data.videosWatchedToday >= 15) {
-            updateUI("انتهت مهمات اليوم!", true);
-        } else if (diff < waitTime && diff > 0) {
-            updateUI(` انتظر 30 ثانيه للتحضير`, true);
-            setTimeout(() => { startSync(); }, waitTime - diff + 500); 
-        } else {
-            updateUI("جاهز لبدء المهمة", false);
-            isLocked = false; 
-        }
-    }, err => {
-        console.error("Sync Error");
-    });
-}
-
-function runVideoProcess() {
-    isLocked = true; 
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('timer-overlay').style.display = 'block';
-    let timeLeft = 30; 
-    const timerDisplay = document.getElementById('timer-overlay');
+    
     updateUI("⏳يرجي مشاهده الاعلان بالكامل..", true);
 
     const countdown = setInterval(() => {
@@ -585,7 +271,7 @@ function runVideoProcess() {
             timerDisplay.style.background = "#22c55e";
             timerDisplay.innerText = "جاهز!";
             document.getElementById('rewardBtn').style.display = 'block';
-            updateUI("اضغط على الزر بالاعلي وانتظر حتي يتم تحميل الصفحه لتستلم مكافأتك", true);
+            updateUI("اضغط بالأسفل لاستلام المكافأة", true);
         }
     }, 1000);
 }
@@ -593,39 +279,32 @@ function runVideoProcess() {
 async function collectReward() {
     if (!userUID) return;
     const rewardBtn = document.getElementById('rewardBtn');
-    const chosenDirectLink = getRandomDirectLink();
+    const chosenLink = getRandomDirectLink();
     
-    // فتح الرابط المباشر (تبديل عشوائي بين أدسترا ومونيتاج)
-    const newWindow = window.open(chosenDirectLink, '_blank');
+    // فتح الإعلان في نافذة جديدة
+    const newWindow = window.open(chosenLink, '_blank');
     
     rewardBtn.style.display = 'none';
-    updateUI('جاري حفظ النقاط...', true);
+    updateUI('<div class="loader"></div> جاري حفظ النقاط...', true);
 
     try {
-        const userRef = db.collection("users").doc(userUID);
-        await userRef.update({
+        await db.collection("users").doc(userUID).update({
             balance: firebase.firestore.FieldValue.increment(1.0),
             videosWatchedToday: firebase.firestore.FieldValue.increment(1),
             lastAdTime: firebase.firestore.FieldValue.serverTimestamp()
         });
-
-        if (!newWindow || newWindow.closed) {
-             setTimeout(() => { window.location.href = chosenDirectLink; }, 500);
-        } else {
-             setTimeout(() => { location.reload(); }, 1500);
-        }
+        
+        // إعادة تحميل خفيفة لتنشيط البيانات
+        setTimeout(() => { location.reload(); }, 1000);
     } catch(e) {
-        isLocked = false;
-        updateUI("❌ فشل التسجيل", false);
+        updateUI("❌ فشل التسجيل، حاول مرة أخرى", false);
         rewardBtn.style.display = 'block';
     }
 }
 
 function updateUI(text, btnState) {
-    const msgElement = document.getElementById('msg');
-    const startBtn = document.getElementById('startBtn');
-    if(msgElement) msgElement.innerHTML = text;
-    if(startBtn) startBtn.disabled = btnState;
+    document.getElementById('msg').innerHTML = text;
+    document.getElementById('startBtn').disabled = btnState;
 }
 </script>
 
