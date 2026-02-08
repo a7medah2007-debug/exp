@@ -90,7 +90,7 @@
     </div>
 
 <script>
-// إعدادات فايربيز
+// إعدادات فايربيز (كما هي بدون تغيير)
 const firebaseConfig = {
     apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
     authDomain: "rewardsite-9025d.firebaseapp.com",
@@ -107,35 +107,67 @@ const auth = firebase.auth();
 let userUID = null;
 let isLocked = false; 
 
-// مصفوفة إعلانات البنرات (داخل الصفحة)
-const BANNER_CODES = [
-    `<script type="text/javascript">atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };<\/script><script type="text/javascript" src="//www.highperformanceformat.com/invoke.js"><\/script>`,
-    `<div id="monetag-ad-inner"></div><script src="https://nap5k.com/tag.min.js" data-zone="10586190" async><\/script>`,
-    `<script async="async" data-cfasync="false" src="https://ballisticcomainvitation.com/f86cc21e3cdaf12feaeabbc84a827ca1/invoke.js"><\/script>`
-];
-
-// مصفوفة الروابط المباشرة (التي تفتح عند الضغط على المكافأة)
+// مصفوفة الروابط المباشرة
 const DIRECT_LINKS = [
     "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", 
     "https://otieu.com/4/10586232" 
 ];
 
-// دالة عرض بنر عشوائي في المربع الأسود
+// دالة عرض الإعلانات (تم إصلاحها لضمان الظهور)
 function displayRandomBanner() {
     const slot = document.getElementById('ad-slot');
     if(!slot) return;
+
+    // "المنقذ": لو الإعلانات التقيلة مظهرتش، ده بيظهر مكانه عشان تضمن الربح
+    const fallbackAd = `<a href="${DIRECT_LINKS[0]}" target="_blank" style="text-decoration:none;">
+        <div style="width:300px; height:250px; background:linear-gradient(45deg, #050a15, #1e293b); border:1px solid #00d2ff; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer;">
+            <div style="font-size:2rem; margin-bottom:10px;">🎁</div>
+            <p style="color:white; font-size:0.8rem;">اضغط هنا وابقي في صفحه الاعلان 10 ثواني لاحتساب المشاهده</p>
+        </div>
+    </a>`;
+
+    const randomChoice = Math.random();
+    slot.innerHTML = ""; // تنظيف المربع
+
     try {
-        const randomCode = BANNER_CODES[Math.floor(Math.random() * BANNER_CODES.length)];
-        const range = document.createRange();
-        const fragment = range.createContextualFragment(randomCode);
-        slot.innerHTML = ""; 
-        slot.appendChild(fragment);
-    } catch(e) { 
-        slot.innerHTML = '<p style="color:#4a5568;">شاهد الإعلانات لتربح النقاط</p>';
+        if (randomChoice < 0.33) {
+            // كود أدسترا (Adsterra) بطريقة الحقن الصحيحة
+            const s1 = document.createElement('script');
+            s1.type = 'text/javascript';
+            s1.text = `atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };`;
+            const s2 = document.createElement('script');
+            s2.type = 'text/javascript';
+            s2.src = '//www.highperformanceformat.com/invoke.js';
+            slot.appendChild(s1);
+            slot.appendChild(s2);
+        } 
+        else if (randomChoice < 0.66) {
+            // كود مونيتاج (Monetag)
+            const mDiv = document.createElement('div');
+            mDiv.id = "monetag-ad-inner";
+            slot.appendChild(mDiv);
+            const mScript = document.createElement('script');
+            mScript.src = 'https://nap5k.com/tag.min.js';
+            mScript.setAttribute('data-zone', '10586190');
+            mScript.async = true;
+            slot.appendChild(mScript);
+        }
+        else {
+            slot.innerHTML = fallbackAd;
+        }
+    } catch (e) {
+        slot.innerHTML = fallbackAd;
     }
+
+    // فحص أمان: لو مفيش إعلان ظهر بعد 4 ثواني، شغل المنقذ فوراً
+    setTimeout(() => {
+        if (slot.innerHTML === "" || slot.offsetHeight < 20) {
+            slot.innerHTML = fallbackAd;
+        }
+    }, 4000);
 }
 
-// مراقبة حالة تسجيل الدخول
+// مراقبة حالة تسجيل الدخول (نفس منطقك)
 auth.onAuthStateChanged(user => {
     if (user) { 
         userUID = user.uid; 
@@ -146,7 +178,7 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-// مزامنة البيانات مع فايربيز
+// مزامنة البيانات (نفس منطقك)
 function startSync() {
     if(!userUID) return;
     db.collection("users").doc(userUID).onSnapshot(doc => {
@@ -163,7 +195,7 @@ function startSync() {
     });
 }
 
-// وظيفة بدء العداد (30 ثانية)
+// العداد 30 ثانية (نفس منطقك بالظبط)
 function runVideoProcess() {
     isLocked = true; 
     document.getElementById('startBtn').disabled = true;
@@ -186,12 +218,12 @@ function runVideoProcess() {
     }, 1000);
 }
 
-// وظيفة المطالبة بالمكافأة (نظام الـ 10 ثواني)
+// نظام الـ 10 ثواني تحقق (نفس منطقك بالظبط)
 async function collectReward() {
     if (!userUID) return;
     
     const chosenLink = DIRECT_LINKS[Math.floor(Math.random() * DIRECT_LINKS.length)];
-    window.open(chosenLink, '_blank'); // فتح الإعلان في صفحة جديدة
+    window.open(chosenLink, '_blank'); 
     
     document.getElementById('rewardBtn').style.display = 'none';
     let waitTime = 10;
@@ -207,7 +239,7 @@ async function collectReward() {
     }, 1000);
 }
 
-// حفظ النقاط في قاعدة البيانات
+// إضافة النقاط (نفس منطقك بالظبط)
 async function savePoints() {
     updateUI('<div class="loader"></div> جاري إضافة النقاط لمحفظتك...', true);
     try {
@@ -218,14 +250,13 @@ async function savePoints() {
         });
         
         updateUI("✅ مبروك! حصلت على 1.00 نقطة", false);
-        setTimeout(() => { location.reload(); }, 1500); // تحديث الصفحة
+        setTimeout(() => { location.reload(); }, 1500);
     } catch(e) {
         updateUI("❌ فشل الاتصال، حاول مرة أخرى", false);
         document.getElementById('rewardBtn').style.display = 'block';
     }
 }
 
-// تحديث واجهة المستخدم
 function updateUI(text, btnState) {
     document.getElementById('msg').innerHTML = text;
     document.getElementById('startBtn').disabled = btnState;
