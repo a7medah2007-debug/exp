@@ -83,9 +83,6 @@
         }
         .google-btn img { width: 20px; }
 
-        .divider { display: flex; align-items: center; margin: 25px 0; color: #475569; font-size: 0.8rem; }
-        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); margin: 0 10px; }
-
         #msg { 
             margin-top: 20px; font-size: 0.85rem; padding: 10px; border-radius: 12px; display: none;
             background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);
@@ -123,8 +120,8 @@
             <input type="password" id="s-pass" placeholder="كلمة المرور">
             <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border);">
                 <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; text-align: right; line-height: 1.4;">
-                    أوافق على سياسات الاستخدام وأدرك أن الغش يؤدي للحظر.
+                <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; text-align: right;">
+                    أوافق على الشروط وأدرك أن الغش يؤدي للحظر.
                 </label>
             </div>
             <button class="btn-main" onclick="signup()">انشاء حساب</button>
@@ -174,7 +171,6 @@
         m.style.display = 'block';
         m.innerText = text;
         m.style.color = color;
-        m.style.borderColor = color === "#22c55e" ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)";
     }
 
     function getDeviceID() {
@@ -188,10 +184,10 @@
 
     async function forgotPassword() {
         const email = document.getElementById('l-email').value;
-        if(!email) return showStatus("اكتب الإيميل في خانة الدخول أولاً");
+        if(!email) return showStatus("اكتب الإيميل أولاً");
         try {
             await auth.sendPasswordResetEmail(email);
-            showStatus("تم إرسال رابط استعادة الباسوورد لإيميلك", "#22c55e");
+            showStatus("✅ تم إرسال رابط الاستعادة", "#22c55e");
         } catch(e) { showStatus("خطأ في الإيميل"); }
     }
 
@@ -201,24 +197,22 @@
         const pass = document.getElementById('s-pass').value;
         const checked = document.getElementById('terms-check').checked;
 
-        if(!checked) return showStatus("يجب الموافقة على الشروط");
-        if(pass.length < 6) return showStatus("الباسوورد ضعيف (أقل من 6)");
+        if(!checked) return showStatus("وافق على الشروط أولاً");
+        if(pass.length < 6) return showStatus("الباسوورد قصير جداً");
 
         try {
             const devID = getDeviceID();
             const devCheck = await db.collection("registered_devices").doc(devID).get();
-            if(devCheck.exists) throw new Error("هذا الجهاز مسجل به حساب بالفعل!");
+            if(devCheck.exists) throw new Error("هذا الجهاز مسجل به حساب!");
 
             const res = await auth.createUserWithEmailAndPassword(email, pass);
             await res.user.sendEmailVerification();
-
             await db.collection("users").doc(res.user.uid).set({
                 name, email, balance: 0, coins: 0, isVerified: false
             });
             await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
-            
             await auth.signOut();
-            showStatus("✅ تم الإنشاء! فعل إيميلك ثم سجل دخولك", "#22c55e");
+            showStatus("✅ تم! فعل إيميلك ثم سجل دخولك", "#22c55e");
         } catch(e) { showStatus(e.message); }
     }
 
@@ -233,26 +227,20 @@
                 return;
             }
             window.location.href = "index.html";
-        } catch(e) { showStatus("خطأ في بيانات الدخول"); }
+        } catch(e) { showStatus("بيانات الدخول خاطئة"); }
     }
 
     async function googleAuth() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-        const res = await auth.signInWithPopup(provider);
-        // ... باقي الكود بتاعك (التأكد من الجهاز والملف الشخصي)
-        
-        window.location.href = "index.html";
-    } catch(e) { 
-        // هنا بنشيك لو الخطأ سببه إن اليوزر قفل الصفحة بنفسه
-        if (e.code === 'auth/popup-closed-by-user') {
-            showStatus("⚠️ تم إلغاء عملية تسجيل الدخول");
-        } else {
-            showStatus(e.message); 
-        }
-    }
-}
-
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            const res = await auth.signInWithPopup(provider);
+            const devID = getDeviceID();
+            const devCheck = await db.collection("registered_devices").doc(devID).get();
+            
+            if(devCheck.exists && devCheck.data().owner !== res.user.uid) {
+                await auth.signOut();
+                throw new Error("الجهاز مرتبط بحساب آخر!");
+            }
 
             const doc = await db.collection("users").doc(res.user.uid).get();
             if(!doc.exists) {
@@ -262,7 +250,13 @@
                 await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
             }
             window.location.href = "index.html";
-        } catch(e) { showStatus(e.message); }
+        } catch(e) { 
+            if (e.code === 'auth/popup-closed-by-user') {
+                showStatus("⚠️ تم إلغاء التسجيل");
+            } else {
+                showStatus(e.message); 
+            }
+        }
     }
 </script>
 </body>
