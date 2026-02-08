@@ -237,16 +237,22 @@
     }
 
     async function googleAuth() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        try {
-            const res = await auth.signInWithPopup(provider);
-            const devID = getDeviceID();
-            const devCheck = await db.collection("registered_devices").doc(devID).get();
-            
-            if(devCheck.exists && devCheck.data().owner !== res.user.uid) {
-                await auth.signOut();
-                throw new Error("الجهاز مرتبط بحساب آخر!");
-            }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+        const res = await auth.signInWithPopup(provider);
+        // ... باقي الكود بتاعك (التأكد من الجهاز والملف الشخصي)
+        
+        window.location.href = "index.html";
+    } catch(e) { 
+        // هنا بنشيك لو الخطأ سببه إن اليوزر قفل الصفحة بنفسه
+        if (e.code === 'auth/popup-closed-by-user') {
+            showStatus("⚠️ تم إلغاء عملية تسجيل الدخول");
+        } else {
+            showStatus(e.message); 
+        }
+    }
+}
+
 
             const doc = await db.collection("users").doc(res.user.uid).get();
             if(!doc.exists) {
