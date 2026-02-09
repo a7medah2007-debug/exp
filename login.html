@@ -239,70 +239,44 @@ alert("تهانينا! حصلت على 30 نقطة و 10 عملات وعجله �
         } catch(e) { showStatus("بيانات الدخول خاطئة"); }
     }
 
-        async function googleAuth() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    try {
-        const res = await auth.signInWithPopup(provider);
-        const user = res.user;
-        const devID = getDeviceID();
-        const devCheck = await db.collection("registered_devices").doc(devID).get();
-        
-        if(devCheck.exists && devCheck.data().owner !== user.uid) {
-            await auth.signOut();
-            throw new Error("هذا الجهاز مرتبط بحساب آخر!");
-        }
+            // --- تسجيل الدخول بجوجل (تم حل التكرار والأخطاء) ---
+    async function googleAuth() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+            const res = await auth.signInWithPopup(provider);
+            const user = res.user;
+            const devID = getDeviceID();
 
-        const userDoc = await db.collection("users").doc(user.uid).get();
-        
-        // إذا كان المستخدم جديداً (أول مرة يسجل بجوجل)
-        if(!userDoc.exists) {
-            await db.collection("users").doc(user.uid).set({
-                name: user.displayName, 
-                email: user.email, 
-                balance: 30, // الهدية
-                coins: 10,   // الهدية
-                videosWatchedToday: 0, 
-                lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
-            
-            // منح مكافأة الإحالة (لو سجل عن طريق رابط صديق)
-            await checkAndGiveReward();
-
-            alert("أهلاً بك في عائلة Elite! حصلت على 30 نقطة وعجله حظ و 10 عملات كهدية ترحيبية. 🎁");
-        }
-        
-        window.location.href = "index.html";
-    } catch(e) { showStatus(e.message); }
-}
-
-            // 1. فحص حماية الجهاز أولاً
+            // فحص حماية الجهاز
             const devCheck = await db.collection("registered_devices").doc(devID).get();
             if(devCheck.exists && devCheck.data().owner !== user.uid) {
-                // ملاحظة: لو الحساب له نفس الإيميل بس الـ UID مختلف (بسبب الربط)، فايربيز بيعالج ده داخلياً
-                // لكن للأمان، لو الحساب اللي داخل مختلف تماماً عن صاحب الجهاز بنطرده
-                if (devCheck.data().owner !== user.uid) {
-                    await auth.signOut();
-                    throw new Error("هذا الجهاز مرتبط بحساب آخر بالفعل!");
-                }
+                await auth.signOut();
+                throw new Error("هذا الجهاز مرتبط بحساب آخر بالفعل!");
             }
 
-            // 2. البحث عن بيانات المستخدم في Firestore
             const userDoc = await db.collection("users").doc(user.uid).get();
             
             if(!userDoc.exists) {
-                // إذا كان المستخدم جديد (أو أول مرة يدخل بجوجل لنفس الإيميل)
+                // مستخدم جديد - إضافة المكافأة 
                 await db.collection("users").doc(user.uid).set({
                     name: user.displayName, 
                     email: user.email, 
-                    balance: 0, 
-                    coins: 0, 
-                    isVerified: true, // جوجل دايماً موثق
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true }); // Merge عشان لو الدوكيومنت موجود ميمسحش البيانات القديمة
-
-                // تسجيل الجهاز لصاحب هذا الحساب
+                    balance: 30, 
+                    coins: 10, 
+                    spins: 1, // إضافة عجلة الحظ
+                    isVerified: true, 
+                    videosWatchedToday: 0,
+                    lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
                 await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
+                
+                // منح مكافأة الإحالة إذا وجدت
+                if (typeof checkAndGiveReward === "function") {
+                    await checkAndGiveReward();
+                }
+
+                alert("أهلاً بك! حصلت على 30 نقطة، 10 عملات وعجلة حظ كهدية ترحيبية. 🎁");
             }
             
             window.location.href = "index.html";
@@ -310,14 +284,12 @@ alert("تهانينا! حصلت على 30 نقطة و 10 عملات وعجله �
         } catch(e) { 
             if (e.code === 'auth/popup-closed-by-user') {
                 showStatus("⚠️ تم إلغاء تسجيل الدخول");
-            } else if (e.code === 'auth/account-exists-with-different-credential') {
-                showStatus("⚠️ هذا الإيميل مسجل بطريقة أخرى، جرب الدخول بالباسورد");
             } else {
                 showStatus(e.message); 
             }
         }
     }
-
 </script>
+
 </body>
 </html>
