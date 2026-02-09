@@ -208,8 +208,17 @@
             const res = await auth.createUserWithEmailAndPassword(email, pass);
             await res.user.sendEmailVerification();
             await db.collection("users").doc(res.user.uid).set({
-                name, email, balance: 0, coins: 0, isVerified: false
-            });
+    name: name, 
+    email: email, 
+    balance: 30, 
+    coins: 10, 
+    isVerified: false,
+    videosWatchedToday: 0,
+    lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+});
+
+// 3. إظهار الرسالة للمستخدم بعد نجاح العملية
+alert("تهانينا! حصلت على 30 نقطة و 10 عملات وعجله حظ كمكافأة تسجيل. يرجى تفعيل حسابك عبر البريد.");
             await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
             await auth.signOut();
             showStatus("✅ تم! فعل إيميلك ثم سجل دخولك", "#22c55e");
@@ -231,12 +240,42 @@
     }
 
         async function googleAuth() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        try {
-            const res = await auth.signInWithPopup(provider);
-            const user = res.user;
-            const devID = getDeviceID();
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+        const res = await auth.signInWithPopup(provider);
+        const user = res.user;
+        const devID = getDeviceID();
+        const devCheck = await db.collection("registered_devices").doc(devID).get();
+        
+        if(devCheck.exists && devCheck.data().owner !== user.uid) {
+            await auth.signOut();
+            throw new Error("هذا الجهاز مرتبط بحساب آخر!");
+        }
+
+        const userDoc = await db.collection("users").doc(user.uid).get();
+        
+        // إذا كان المستخدم جديداً (أول مرة يسجل بجوجل)
+        if(!userDoc.exists) {
+            await db.collection("users").doc(user.uid).set({
+                name: user.displayName, 
+                email: user.email, 
+                balance: 30, // الهدية
+                coins: 10,   // الهدية
+                videosWatchedToday: 0, 
+                lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
             
+            // منح مكافأة الإحالة (لو سجل عن طريق رابط صديق)
+            await checkAndGiveReward();
+
+            alert("أهلاً بك في عائلة Elite! حصلت على 30 نقطة وعجله حظ و 10 عملات كهدية ترحيبية. 🎁");
+        }
+        
+        window.location.href = "index.html";
+    } catch(e) { showStatus(e.message); }
+}
+
             // 1. فحص حماية الجهاز أولاً
             const devCheck = await db.collection("registered_devices").doc(devID).get();
             if(devCheck.exists && devCheck.data().owner !== user.uid) {
