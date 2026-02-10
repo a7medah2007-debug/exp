@@ -80,33 +80,35 @@
 </div>
 
 <div class="modal" id="depositModal">
-    <div class="modal-content" style="border-color: var(--gold);">
-        <h2 style="color: var(--gold);">تأكيد بيانات التحويل</h2>
-        <p style="font-size: 0.85rem; margin-top: 10px;">حول المبلغ المطلوب إلى:</p>
-        <div style="background: #000; padding: 15px; border-radius: 15px; margin: 15px 0; border: 1px dashed var(--gold); font-size: 1.3rem; color: #fff; letter-spacing: 2px;">
-            01104452609
+    <div class="modal-content"> <h2 style="background: linear-gradient(to left, var(--neon), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">شحن رصيد عملات</h2>
+        
+        <div style="margin: 15px 0;">
+            <input type="number" id="buyAmount" placeholder="أدخل عدد العملات" oninput="calcPrice(this.value)">
+            <div id="priceResult" style="color: var(--gold); font-weight: bold; margin-bottom: 15px; font-size: 0.9rem;">السعر المطلوب: 0 جنيه</div>
         </div>
 
-        <input type="text" id="senderPhone" placeholder="رقم فودافون كاش اللي حولت منه">
-        <input type="text" id="senderName" placeholder="اسم صاحب الحساب (اختياري)">
-        <input type="text" id="transferTime" placeholder="وقت التحويل التقريبي (مثلاً: 5:30 مساءً)">
+        <p style="font-size: 0.8rem; color: #94a3b8;">حول المبلغ لـ: <b style="color:white; letter-spacing:1px;">01104452609</b></p>
+        
+        <input type="text" id="senderPhone" placeholder="رقم فودافون كاش المحول منه">
+        <input type="text" id="transferTime" placeholder="وقت التحويل (مثلاً: الآن)">
 
-        <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 10px;">
-            * المراجعة تتم خلال دقائق. تأكد من إدخال بيانات صحيحة لتجنب رفض الطلب.
-        </p>
-
-        <button class="buy-now" style="background: var(--gold); color: #000;" onclick="submitDeposit()">تأكيد وإرسال الطلب</button>
+        <button class="buy-now" onclick="submitDeposit()">إرسال طلب الشحن</button>
         <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeDepositModal()">إلغاء</button>
     </div>
 </div>
 
+
         
         <div class="category-tabs">
-            <button class="tab-btn active" onclick="filterCat('all', this)">الكل</button>
-            <button class="tab-btn" onclick="filterCat('cards', this)">كروت شحن</button>
-            <button class="tab-btn" onclick="filterCat('games', this)">شحن ألعاب</button>
-            <button class="tab-btn" onclick="filterCat('net', this)">باقات نت</button>
-        </div>
+    <button class="tab-btn active" onclick="filterCat('all', this)">الكل</button>
+    <button class="tab-btn" style="border-color: var(--gold); color: var(--gold);" onclick="openDepositModal()">
+        <i class="fas fa-plus-circle"></i> شراء عملات
+    </button>
+    <button class="tab-btn" onclick="filterCat('cards', this)">كروت شحن</button>
+    <button class="tab-btn" onclick="filterCat('games', this)">شحن ألعاب</button>
+    <button class="tab-btn" onclick="filterCat('net', this)">باقات نت</button>
+</div>
+
 
         <div class="products-grid" id="productsGrid"></div>
     </div>
@@ -229,14 +231,36 @@ function closeDepositModal() {
     document.getElementById('depositModal').style.display = 'none';
 }
 
+// حاسبة السعر مع التقريب لأقرب رقم صحيح
+function calcPrice(coins) {
+    if(!coins) {
+        document.getElementById('priceResult').innerText = `السعر المطلوب: 0 جنيه`;
+        return;
+    }
+    // السعر الأصلي 0.333 مضروب في العملات، ثم تقريبه لأقرب رقم صحيح
+    const price = Math.round(coins * 0.3333); 
+    document.getElementById('priceResult').innerText = `السعر المطلوب: ${price} جنيه مصري`;
+}
+
+function openDepositModal() {
+    // تصفير الحقول قبل الفتح لضمان النظافة
+    document.getElementById('buyAmount').value = "";
+    document.getElementById('priceResult').innerText = "السعر المطلوب: 0 جنيه";
+    document.getElementById('depositModal').style.display = 'flex';
+}
+
+function closeDepositModal() {
+    document.getElementById('depositModal').style.display = 'none';
+}
+
 async function submitDeposit() {
     const amount = document.getElementById('buyAmount').value;
     const phone = document.getElementById('senderPhone').value;
-    const name = document.getElementById('senderName').value || "غير محدد";
     const time = document.getElementById('transferTime').value;
+    const finalPrice = Math.round(amount * 0.3333); // حساب السعر النهائي المقرب للإرسال
 
     if(!amount || !phone || !time) {
-        return showToast("⚠️ يرجى كتابة الرقم والوقت والمبلغ!");
+        return showToast("⚠️ أكمل البيانات المطلوبة أولاً!");
     }
 
     showToast("⏳ جاري إرسال طلبك...");
@@ -246,28 +270,20 @@ async function submitDeposit() {
             user_id: auth.currentUser.uid,
             user_email: auth.currentUser.email,
             coins_requested: parseInt(amount),
-            price_to_pay: (amount * 0.333).toFixed(2),
+            price_to_pay: finalPrice, // سيتم تخزينه كرقم صحيح (مثلاً 10 بدل 9.99)
             sender_phone: phone,
-            sender_name: name,
             transfer_time: time,
             status: "pending",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        showToast("✅ تم إرسال طلبك! انتظر التفعيل.");
+        showToast("✅ تم إرسال الطلب بنجاح!");
         closeDepositModal();
-        
-        // تصفير الحقول بعد النجاح
-        document.getElementById('buyAmount').value = "";
-        document.getElementById('senderPhone').value = "";
-        document.getElementById('senderName').value = "";
-        document.getElementById('transferTime').value = "";
-        
     } catch (e) {
-        console.error(e);
         showToast("❌ حدث خطأ.. حاول مرة أخرى.");
     }
 }
+
 
     
         async function confirmOrder() {
