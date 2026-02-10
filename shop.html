@@ -91,11 +91,16 @@
                 <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeModal()">إلغاء</button>
             </div>
 
-            <div id="step-2" class="code-box">
-                <p id="statusMsg" style="font-size: 0.85rem; margin-bottom:10px; color: #94a3b8;">تم بنجاح:</p>
+                      <div id="step-2" class="code-box">
+                <p id="statusMsg" style="font-size: 1rem; margin-bottom:10px; color: #94a3b8;"></p>
                 <div class="code-text" id="resultPin"></div>
-                <button id="copyBtn" class="buy-now" style="margin-top:20px; background:var(--gold);" onclick="copyCode()">نسخ الكود</button>
+                
+                <div id="actionButtons" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <button id="copyBtn" class="buy-now" style="background:var(--gold); margin: 0;" onclick="copyCode()">نسخ الكود</button>
+                    <button class="buy-now" style="background:var(--glass); border: 1px solid var(--border); margin: 0;" onclick="closeModal()">العودة للمتجر</button>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -184,7 +189,7 @@
             const credential = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
             await auth.currentUser.reauthenticateWithCredential(credential);
 
-            await db.runTransaction(async (transaction) => {
+                        await db.runTransaction(async (transaction) => {
                 // شحن يدوي (Request)
                 if(selectedProduct.type === 'request') {
                     transaction.update(db.collection("users").doc(auth.currentUser.uid), { coins: userData.coins - selectedProduct.price });
@@ -195,24 +200,32 @@
                         status: "pending",
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    document.getElementById('statusMsg').innerText = "تم إرسال طلبك:";
-                    document.getElementById('resultPin').innerText = "قيد التنفيذ";
-                    document.getElementById('copyBtn').style.display = 'none';
+                    
+                    // التعديل هنا:
+                    document.getElementById('statusMsg').innerText = "حالة الطلب:";
+                    document.getElementById('resultPin').innerText = "قيد التنفيذ ⏳";
+                    document.getElementById('resultPin').style.color = "var(--gold)"; // تغيير اللون للذهبي
+                    document.getElementById('copyBtn').style.display = 'none'; // إخفاء زر النسخ
                 } 
-                // نظام الأكواد القديم (Pin)
+                // نظام الأكواد (Pin)
                 else {
                     const v = await db.collection("vault").where("product_id", "==", selectedProduct.id).where("is_used", "==", false).limit(1).get();
                     if(v.empty) throw "⚠️ المخزن فارغ!";
                     const code = v.docs[0];
                     transaction.update(db.collection("users").doc(auth.currentUser.uid), { coins: userData.coins - selectedProduct.price });
                     transaction.update(code.ref, { is_used: true, buyer_id: auth.currentUser.uid });
-                    document.getElementById('statusMsg').innerText = "تم سحب الكود:";
+                    
+                    // التعديل هنا:
+                    document.getElementById('statusMsg').innerText = "تم شراء الكود بنجاح:";
                     document.getElementById('resultPin').innerText = code.data().pin_code;
-                    document.getElementById('copyBtn').style.display = 'block';
+                    document.getElementById('resultPin').style.color = "var(--neon)"; // لون النيون للأكواد
+                    document.getElementById('copyBtn').style.display = 'block'; // إظهار زر النسخ
                 }
+                
                 document.getElementById('step-1').style.display = 'none';
                 document.getElementById('step-2').style.display = 'block';
             });
+
         } catch (e) { showToast(e); }
     }
 
