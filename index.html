@@ -417,7 +417,6 @@
     <a href="javascript:void(0)" class="nav-item" onclick="openProfile()"><i class="fas fa-user-gear"></i><span>Profile</span></a>
 </nav>
 
-
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
@@ -433,20 +432,17 @@
     const auth = firebase.auth();
 
     let userCache = null;
+    let isInitialLoad = true; // متغير لمنع ظهور التنبيهات القديمة عند التحميل
 
     function notify(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg; 
-    
-    // إضافة الكلاس عشان يظهر
-    t.classList.add('show');
-    
-    // إخفاء الرسالة بعد 3 ثواني
-    setTimeout(() => {
-        t.classList.remove('show');
-    }, 3000);
-}
-
+        const t = document.getElementById('toast');
+        if(!t) return;
+        t.innerText = msg; 
+        t.classList.add('show');
+        setTimeout(() => {
+            t.classList.remove('show');
+        }, 3000);
+    }
 
     auth.onAuthStateChanged(user => {
         if (!user) { window.location.href = "login.html"; return; }
@@ -456,12 +452,95 @@
             userCache = doc.data();
             renderUI(userCache);
             
-            // تحديث رابط الإحالة الخاص بالمستخدم
             const refLink = window.location.origin + "/login.html?ref=" + user.uid;
-            document.getElementById('ref-link-input').value = refLink;
+            const refInput = document.getElementById('ref-link-input');
+            if(refInput) refInput.value = refLink;
         });
+
+        // --- نظام مراقبة التنبيهات الذكي ---
+        db.collection("users").doc(user.uid).collection("notifications")
+          .where("read", "==", false)
+          .onSnapshot(snap => {
+              const bellDot = document.querySelector('.bell-dot');
+              const bellIcon = document.querySelector('.notification-bell');
+
+              if (!snap.empty) {
+                  if (bellDot) bellDot.style.display = 'block';
+                  if (bellIcon) bellIcon.classList.add('active');
+
+                  snap.docChanges().forEach(change => {
+                      if (change.type === "added" && !isInitialLoad) {
+                          const notif = change.doc.data();
+                          showToast("🔔 " + (notif.title || "رسالة جديدة") + ": " + notif.message);
+                      }
+                  });
+              } else {
+                  if (bellDot) bellDot.style.display = 'none';
+                  if (bellIcon) bellIcon.classList.remove('active');
+              }
+              isInitialLoad = false; // تفعيل التنبيهات للرسائل القادمة فقط
+          });
     });
 
+    function renderUI(d) {
+        if(document.getElementById('u-name')) document.getElementById('u-name').innerText = d.name || "Unknown";
+        if(document.getElementById('u-initial')) document.getElementById('u-initial').innerText = (d.name || "E")[0].toUpperCase();
+        if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = (d.balance || 0).toFixed(2);
+        if(document.getElementById('u-coins')) document.getElementById('u-coins').innerText = d.coins || 0;
+        if(document.getElementById('u-ads')) document.getElementById('u-ads').innerText = `${d.videosWatchedToday || 0} / 15`;
+        
+        const xp = d.balance % 1000;
+        const lvl = Math.floor(d.balance / 1000) + 1;
+        if(document.getElementById('u-level')) document.getElementById('u-level').innerText = lvl;
+        if(document.getElementById('u-xp')) document.getElementById('u-xp').innerText = `${xp.toFixed(0)} / 1000 XP`;
+        if(document.getElementById('u-progress')) document.getElementById('u-progress').style.width = (xp / 10) + "%";
+
+        if(d.balance >= 100 && document.getElementById('badge-1')) document.getElementById('badge-1').classList.add('active');
+        if(d.balance >= 1000 && document.getElementById('badge-2')) document.getElementById('badge-2').classList.add('active');
+        if(d.coins >= 5000 && document.getElementById('badge-3')) document.getElementById('badge-3').classList.add('active');
+        if(d.balance >= 10000 && document.getElementById('badge-4')) document.getElementById('badge-4').classList.add('active');
+
+        const rankLabels = ["Citizen", "Warrior", "Elite", "Legend", "Immortal"];
+        const rIdx = Math.min(Math.floor(lvl / 2), 4);
+        if(document.getElementById('u-rank')) document.getElementById('u-rank').innerHTML = `<i class=\"fas fa-crown\"></i> Rank: ${rankLabels[rIdx]}`;
+    }
+
+    async function openInbox() {
+        if (!auth.currentUser) return;
+        
+        document.getElementById('modal-inbox').style.display = 'flex';
+        const uid = auth.currentUser.uid;
+
+        // جلب أحدث رسالة لعرضها
+        const msgSnap = await db.collection("users").doc(uid).collection("notifications")
+                                .orderBy("time", "desc").limit(1).get();
+        
+        if(!msgSnap.empty) {
+            document.getElementById('inbox-content').innerText = msgSnap.docs[0].data().message;
+        } else {
+            document.getElementById('inbox-content').innerText = "لا توجد رسائل حالياً";
+        }
+
+        // تحويل كافة الرسائل لـ "مقروءة" لإطفاء الجرس
+        const unreadSnap = await db.collection("users").doc(uid).collection("notifications")
+                                 .where("read", "==", false).get();
+        
+        if(!unreadSnap.empty) {
+            const batch = db.batch();
+            unreadSnap.forEach(doc => batch.update(doc.ref, { read: true }));
+            await batch.commit();
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        if(!t) return;
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 5000);
+    }
+
+    // --- الوظائف الأساسية المتبقية (بدون تغيير) ---
     function copyRef() {
         const linkInput = document.getElementById('ref-link-input');
         linkInput.select();
@@ -469,66 +548,10 @@
         notify("✅ تم نسخ رابط الإحالة الملوكي!");
     }
 
-    // --- دالة التحديث الشاملة للواجهة (بدون استريك) ---
-    function renderUI(d) {
-        document.getElementById('u-name').innerText = d.name || "Unknown";
-        document.getElementById('u-initial').innerText = (d.name || "E")[0].toUpperCase();
-        document.getElementById('u-balance').innerText = (d.balance || 0).toFixed(2);
-        document.getElementById('u-coins').innerText = d.coins || 0;
-        document.getElementById('u-ads').innerText = `${d.videosWatchedToday || 0} / 15`;
-        
-        // حساب المستويات والـ XP
-        const xp = d.balance % 1000;
-        const lvl = Math.floor(d.balance / 1000) + 1;
-        document.getElementById('u-level').innerText = lvl;
-        document.getElementById('u-xp').innerText = `${xp.toFixed(0)} / 1000 XP`;
-        document.getElementById('u-progress').style.width = (xp / 10) + "%";
-
-        // تحديث الإنجازات (Badges) بناءً على الرصيد والعملات فقط
-        if(d.balance >= 100) document.getElementById('badge-1').classList.add('active');
-        if(d.balance >= 1000) document.getElementById('badge-2').classList.add('active');
-        if(d.coins >= 5000) document.getElementById('badge-3').classList.add('active');
-        if(d.balance >= 10000) document.getElementById('badge-4').classList.add('active');
-
-        // تحديث الرتبة (Rank)
-        const rankLabels = ["Citizen", "Warrior", "Elite", "Legend", "Immortal"];
-        const rIdx = Math.min(Math.floor(lvl / 2), 4);
-        document.getElementById('u-rank').innerHTML = `<i class="fas fa-crown"></i> Rank: ${rankLabels[rIdx]}`;
-
-        // --- نظام الجرس الملوكي ---
-        const bellBtn = document.getElementById('bell-btn');
-        if(d.privateMessage && d.privateMessage !== "" && d.privateMessage !== d.lastReadMsg) {
-            bellBtn.classList.add('active');
-        } else {
-            bellBtn.classList.remove('active');
-        }
-    }
-
-    // --- دالة فتح البريد الملكي ---
-    async function openInbox() {
-        document.getElementById('modal-inbox').style.display = 'flex';
-        const msg = userCache.privateMessage || "أهلاً بك في نظام النخبة! لا توجد رسائل خاصة لك اليوم.";
-        document.getElementById('inbox-content').innerText = msg;
-        
-        document.getElementById('bell-btn').classList.remove('active');
-
-        if (userCache.privateMessage && userCache.privateMessage !== "") {
-            await db.collection("users").doc(auth.currentUser.uid).update({
-                lastReadMsg: userCache.privateMessage
-            });
-        }
-    }
-
     async function handleGift() {
-        if(userCache.videosWatchedToday < 15) {
-            notify("❌ أكمل الـ 15 فيديو أولاً!");
-            return;
-        }
+        if(userCache.videosWatchedToday < 15) { notify("❌ أكمل الـ 15 فيديو أولاً!"); return; }
         const today = new Date().toDateString();
-        if(userCache.lastGiftDate === today) {
-            notify("⏳ تم استلام هدية اليوم بالفعل!");
-            return;
-        }
+        if(userCache.lastGiftDate === today) { notify("⏳ تم استلام هدية اليوم بالفعل!"); return; }
         await db.collection("users").doc(auth.currentUser.uid).update({
             coins: firebase.firestore.FieldValue.increment(1),
             lastGiftDate: today
@@ -542,7 +565,7 @@
         let html = "";
         let i = 1;
         snap.forEach(doc => {
-            html += `<div class="leader-row"><span>#${i++} ${doc.data().name}</span><b style="color:var(--neon-cyan)">$${doc.data().balance}</b></div>`;
+            html += `<div class=\"leader-row\"><span>#${i++} ${doc.data().name}</span><b style=\"color:var(--neon-cyan)\">$${doc.data().balance}</b></div>`;
         });
         document.getElementById('leaders-content').innerHTML = html;
     }
@@ -560,56 +583,42 @@
         notify("✅ تمت مزامنة بياناتك الجديدة");
         closeModals();
     }
+
     async function updatePassword() {
-    const newPass = document.getElementById('new-password').value;
-    const user = auth.currentUser;
-
-    if (newPass.length < 6) {
-        notify("❌ كلمة المرور يجب أن تكون 6 رموز على الأقل");
-        return;
-    }
-
-    try {
-        await user.updatePassword(newPass);
-        notify("✅ تم تحديث كلمة المرور بنجاح");
-        document.getElementById('new-password').value = ""; // تفريغ الحقل
-    } catch (error) {
-        if (error.code === 'auth/requires-recent-login') {
-            notify("⚠️ يجب تسجيل الدخول مرة أخرى لتغيير الباسورد");
-            setTimeout(() => auth.signOut(), 2000);
-        } else {
-            notify("❌ حدث خطأ: " + error.message);
+        const newPass = document.getElementById('new-password').value;
+        if (newPass.length < 6) { notify("❌ كلمة المرور يجب أن تكون 6 رموز على الأقل"); return; }
+        try {
+            await auth.currentUser.updatePassword(newPass);
+            notify("✅ تم تحديث كلمة المرور بنجاح");
+            document.getElementById('new-password').value = "";
+        } catch (error) {
+            if (error.code === 'auth/requires-recent-login') {
+                notify("⚠️ يجب تسجيل الدخول مرة أخرى لتغيير الباسورد");
+                setTimeout(() => auth.signOut(), 2000);
+            } else { notify("❌ حدث خطأ: " + error.message); }
         }
     }
-}
 
-    function openDeleteModal() {
-        document.getElementById('modal-delete').style.display = 'flex';
-    }
+    function openDeleteModal() { document.getElementById('modal-delete').style.display = 'flex'; }
 
     async function processAccountDeletion() {
         const password = document.getElementById('del-pass-input').value;
         const user = auth.currentUser;
         const btn = document.getElementById('confirmDeleteBtn');
-
         if(!password) { notify("❌ أدخل كلمة المرور أولاً"); return; }
-
         try {
             btn.innerText = "جاري التحقق...";
             btn.disabled = true;
             const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
             await user.reauthenticateWithCredential(credential);
-
             const finalCheck = confirm("⚠️ تحذير نهائي: سيتم حذف جميع بياناتك وأرصدتك فوراً. هل أنت متأكد؟");
             if (!finalCheck) { btn.innerText = "تأكيد الحذف"; btn.disabled = false; return; }
-
             await db.collection("users").doc(user.uid).delete();
             await user.delete();
             alert("تم حذف حسابك بنجاح.");
             window.location.href = "login.html";
         } catch (error) {
-            btn.innerText = "تأكيد الحذف";
-            btn.disabled = false;
+            btn.innerText = "تأكيد الحذف"; btn.disabled = false;
             if(error.code === 'auth/wrong-password') notify("❌ كلمة المرور خاطئة!");
             else alert("حدث خطأ: " + error.message);
         }
@@ -617,6 +626,7 @@
 
     function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display='none'); }
 </script>
+
 
 <div class="modal-overlay" id="modal-delete">
     <div class="modal-box" style="border-color: #ef4444; text-align: center;">
