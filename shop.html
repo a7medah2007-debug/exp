@@ -81,23 +81,25 @@
 
 <div class="modal" id="depositModal">
     <div class="modal-content" style="border-color: var(--gold);">
-        <h2 style="color: var(--gold);">إتمام عملية الدفع</h2>
-        <p style="font-size: 0.85rem; margin-top: 10px;">قم بتحويل المبلغ المطلوب إلى الرقم التالي:</p>
+        <h2 style="color: var(--gold);">تأكيد بيانات التحويل</h2>
+        <p style="font-size: 0.85rem; margin-top: 10px;">حول المبلغ المطلوب إلى:</p>
         <div style="background: #000; padding: 15px; border-radius: 15px; margin: 15px 0; border: 1px dashed var(--gold); font-size: 1.3rem; color: #fff; letter-spacing: 2px;">
             01104452609
         </div>
-        <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 15px;">
-            سيتم الشحن خلال ثوانٍ (بحد أقصى 7 ساعات في حال المراجعة اليدوية).
+
+        <input type="text" id="senderPhone" placeholder="رقم فودافون كاش اللي حولت منه">
+        <input type="text" id="senderName" placeholder="اسم صاحب الحساب (اختياري)">
+        <input type="text" id="transferTime" placeholder="وقت التحويل التقريبي (مثلاً: 5:30 مساءً)">
+
+        <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 10px;">
+            * المراجعة تتم خلال دقائق. تأكد من إدخال بيانات صحيحة لتجنب رفض الطلب.
         </p>
 
-        <input type="text" id="senderPhone" placeholder="رقم فودافون كاش الذي حولت منه">
-        <label style="display: block; margin-top: 10px; font-size: 0.8rem; color: #94a3b8;">ارفق صورة التحويل (سكرين شوت):</label>
-        <input type="file" id="transferScreenshot" accept="image/*" style="font-size: 0.8rem;">
-
-        <button class="buy-now" style="background: var(--gold); color: #000;" onclick="submitDeposit()">تأكيد إرسال الطلب</button>
+        <button class="buy-now" style="background: var(--gold); color: #000;" onclick="submitDeposit()">تأكيد وإرسال الطلب</button>
         <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeDepositModal()">إلغاء</button>
     </div>
 </div>
+
         
         <div class="category-tabs">
             <button class="tab-btn active" onclick="filterCat('all', this)">الكل</button>
@@ -230,34 +232,43 @@ function closeDepositModal() {
 async function submitDeposit() {
     const amount = document.getElementById('buyAmount').value;
     const phone = document.getElementById('senderPhone').value;
-    const file = document.getElementById('transferScreenshot').files[0];
+    const name = document.getElementById('senderName').value || "غير محدد";
+    const time = document.getElementById('transferTime').value;
 
-    if(!phone || !file) return showToast("⚠️ يرجى إدخال الرقم وارفاق الصورة!");
+    if(!amount || !phone || !time) {
+        return showToast("⚠️ يرجى كتابة الرقم والوقت والمبلغ!");
+    }
 
-    showToast("جاري رفع طلبك...");
+    showToast("⏳ جاري إرسال طلبك...");
 
     try {
-        // ملاحظة: لرفع الصورة ستحتاج Firebase Storage، ولكن كحل بديل مؤقت
-        // سنقوم بحفظ البيانات في Firestore وإرسال تنبيه لك
-        
         await db.collection("deposit_requests").add({
             user_id: auth.currentUser.uid,
             user_email: auth.currentUser.email,
-            coins_requested: amount,
+            coins_requested: parseInt(amount),
             price_to_pay: (amount * 0.333).toFixed(2),
             sender_phone: phone,
+            sender_name: name,
+            transfer_time: time,
             status: "pending",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        showToast("✅ تم إرسال طلبك بنجاح!");
+        showToast("✅ تم إرسال طلبك! انتظر التفعيل.");
         closeDepositModal();
+        
+        // تصفير الحقول بعد النجاح
         document.getElementById('buyAmount').value = "";
+        document.getElementById('senderPhone').value = "";
+        document.getElementById('senderName').value = "";
+        document.getElementById('transferTime').value = "";
+        
     } catch (e) {
         console.error(e);
-        showToast("❌ حدث خطأ أثناء إرسال الطلب.");
+        showToast("❌ حدث خطأ.. حاول مرة أخرى.");
     }
 }
+
     
         async function confirmOrder() {
         const pass = document.getElementById('confirmPass').value;
