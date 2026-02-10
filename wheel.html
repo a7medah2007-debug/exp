@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>عجلة الحظ الملكية - الإصدار الموثوق</title>
+    <title>عجلة الحظ الملكية - الإصدار الصارم</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
@@ -28,7 +28,6 @@
             align-items: center; z-index: 5;
         }
 
-        /* الرصيد */
         .wallet-bar {
             display: flex; gap: 15px; margin-bottom: 25px;
             background: rgba(255, 255, 255, 0.08);
@@ -39,11 +38,7 @@
         .wallet-bar div { font-size: 0.95rem; font-weight: bold; color: #fff; }
         .wallet-bar span { color: var(--accent); }
 
-        /* العجلة */
-        .wheel-wrapper {
-            position: relative; width: 310px; height: 310px;
-        }
-
+        .wheel-wrapper { position: relative; width: 310px; height: 310px; }
         #wheelCanvas {
             width: 100%; height: 100%; border-radius: 50%;
             border: 8px solid #1e293b;
@@ -52,7 +47,6 @@
             will-change: transform;
         }
 
-        /* المؤشر الثابت في الأعلى */
         .indicator {
             position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
             width: 38px; height: 48px; background: var(--accent);
@@ -60,7 +54,6 @@
             z-index: 30; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
         }
 
-        /* الأزرار */
         .btn-spin {
             width: 85%; padding: 16px; border-radius: 50px; border: none;
             background: linear-gradient(135deg, #6366f1, #4338ca);
@@ -78,9 +71,8 @@
             text-align: center; font-size: 0.85rem; cursor: pointer;
         }
 
-        .footer-note { font-size: 0.75rem; color: #94a3b8; margin-top: 15px; text-align: center; }
+        .footer-note { font-size: 0.85rem; color: #fbbf24; margin-top: 15px; text-align: center; font-weight: bold; }
 
-        /* البطاقة المنبثقة */
         .overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.9);
             display: none; justify-content: center; align-items: center; z-index: 1000;
@@ -107,26 +99,25 @@
             <canvas id="wheelCanvas" width="800" height="800"></canvas>
         </div>
 
-        <button class="btn-spin" id="btnSpin" onclick="handleSpin()">لف العجلة!</button>
+        <button class="btn-spin" id="btnSpin" onclick="handleSpin()">لف العجلة (15 نقطة)</button>
 
         <div class="nav-links">
             <button class="nav-btn" onclick="location.href='index.html'">لوحه التحكم</button>
             <button class="nav-btn" onclick="location.href='shop.html'">المتجر</button>
         </div>
         
-        <p class="footer-note">أول لفة مجانية، ثم 15 نقطة لكل لفة.</p>
+        <p class="footer-note">تكلفة اللفة: 15 نقطة</p>
     </div>
 
     <div class="overlay" id="overlay">
         <div class="result-card">
-            <h2 style="margin:0; color:#94a3b8; font-size:1.1rem;">لقد فزت بـ</h2>
+            <h2 style="margin:0; color:#94a3b8; font-size:1.1rem;">النتيجة</h2>
             <span class="prize-name" id="prizeName">-</span>
-            <button class="btn-close" onclick="closePopup()">استلام</button>
+            <button class="btn-close" onclick="closePopup()">موافق</button>
         </div>
     </div>
 
     <script>
-        // 1. Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
             authDomain: "rewardsite-9025d.firebaseapp.com",
@@ -139,8 +130,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // 2. Wheel Data
-              const sectors = [
+        const sectors = [
             { label: "لا شيء", weight: 20, color: "#1e293b", val: 0, type: 'coin' },
             { label: "200 عملة", weight: 0.2, color: "#ef4444", val: 200, type: 'coin' },
             { label: "100 عملة", weight: 0.3, color: "#ea580c", val: 100, type: 'coin' },
@@ -154,7 +144,6 @@
         ];
 
         let currentRotation = 0;
-        let userData = { balance: 0, coins: 0, firstSpinFree: true };
         let isFreeRetry = false;
         let isSpinning = false;
 
@@ -163,7 +152,6 @@
         const sectorCount = sectors.length;
         const arc = (2 * Math.PI) / sectorCount;
 
-        // 3. Drawing
         function draw() {
             ctx.clearRect(0,0,800,800);
             sectors.forEach((s, i) => {
@@ -174,7 +162,6 @@
                 ctx.moveTo(400, 400);
                 ctx.arc(400, 400, 380, angle, angle + arc);
                 ctx.fill();
-                // نصوص القطاعات
                 ctx.translate(400, 400);
                 ctx.rotate(angle + arc / 2);
                 ctx.textAlign = "right";
@@ -186,88 +173,72 @@
         }
         draw();
 
-        // 4. Firebase Sync
         auth.onAuthStateChanged(user => {
             if (user) {
                 db.collection("users").doc(user.uid).onSnapshot(doc => {
                     if (doc.exists) {
-                        userData = doc.data();
-                        document.getElementById('lblBalance').innerText = userData.balance || 0;
-                        document.getElementById('lblCoins').innerText = userData.coins || 0;
+                        const data = doc.data();
+                        document.getElementById('lblBalance').innerText = data.balance || 0;
+                        document.getElementById('lblCoins').innerText = data.coins || 0;
                     }
                 });
             }
         });
 
-        // 5. Spin Logic
-                async function handleSpin() {
+        async function handleSpin() {
             if (isSpinning || !auth.currentUser) return;
 
             const btn = document.getElementById('btnSpin');
             btn.disabled = true;
-            btn.innerText = "جاري التحقق..."; // رسالة طمأنينة للمستخدم
+            btn.innerText = "جاري التحقق...";
 
             try {
-                // 1. جلب البيانات الطازجة من السيرفر مباشرة
+                // الفحص من السيرفر مباشرة
                 const userDoc = await db.collection("users").doc(auth.currentUser.uid).get();
-                if (!userDoc.exists) {
-                    alert("خطأ: لم يتم العثور على حسابك.");
+                const userData = userDoc.data();
+                const balance = userData.balance || 0;
+
+                if (!isFreeRetry && balance < 15) {
+                    alert("رصيد نقاطك غير كافٍ! تحتاج 15 نقطة.");
                     btn.disabled = false;
-                    btn.innerText = "لف العجلة!";
+                    btn.innerText = "لف العجلة (15 نقطة)";
                     return;
                 }
 
-                const data = userDoc.data();
-                const isFree = data.firstSpinFree !== false; // التحقق من السيرفر وليس المتصفح
-
-                // 2. فحص الشروط بناءً على بيانات السيرفر
-                if (!isFree && !isFreeRetry && (data.balance || 0) < 15) {
-                    alert("رصيد نقاطك غير كافٍ!");
-                    btn.disabled = false;
-                    btn.innerText = "لف العجلة!";
-                    return;
-                }
-
-                // 3. الآن نبدأ العملية فعلياً
                 isSpinning = true;
 
-                // تحديث قاعدة البيانات فوراً (خصم النقاط أو استهلاك اللفة المجانية)
-                if (isFree) {
-                    await db.collection("users").doc(auth.currentUser.uid).update({ firstSpinFree: false });
-                } else if (!isFreeRetry) {
+                // الخصم من السيرفر (إلا لو كانت إعادة لف)
+                if (!isFreeRetry) {
                     await db.collection("users").doc(auth.currentUser.uid).update({
                         balance: firebase.firestore.FieldValue.increment(-15)
                     });
                 }
 
-                // 4. اختيار الفائز (الاحتمالات)
                 const winnerIdx = getWeightedWinner();
-                
-                // حسابات التوقف
                 const sectorDeg = 360 / sectorCount;
                 const targetPos = 270 - (winnerIdx * sectorDeg) - (sectorDeg / 2);
-                const extraSpins = 360 * 10; 
+                const extraSpins = 360 * 10;
                 const finalRotation = currentRotation + extraSpins + ((targetPos - (currentRotation % 360) + 360) % 360);
                 
                 currentRotation = finalRotation;
                 canvas.style.transform = `rotate(${currentRotation}deg)`;
-                btn.innerText = "حظ سعيد!";
+                btn.innerText = "بالتوفيق...";
 
-                // إعادة تعيين محاولة "إعادة اللف"
-                isFreeRetry = false;
+                isFreeRetry = false; // تصفير الإعادة دائماً بعد البدء
 
                 setTimeout(() => finalize(winnerIdx), 5200);
 
             } catch (error) {
-                console.error("Firebase Error:", error);
-                alert("حدث خطأ في الاتصال، حاول مرة أخرى.");
+                console.error(error);
+                alert("حدث خطأ، حاول مجدداً.");
                 btn.disabled = false;
-                btn.innerText = "لف العجلة!";
+                btn.innerText = "لف العجلة (15 نقطة)";
             }
         }
 
         function getWeightedWinner() {
-            let rand = Math.random() * 100;
+            const totalWeight = sectors.reduce((acc, s) => acc + s.weight, 0);
+            let rand = Math.random() * totalWeight;
             let sum = 0;
             for (let i = 0; i < sectors.length; i++) {
                 sum += sectors[i].weight;
@@ -282,6 +253,7 @@
             
             if (prize.type === 'retry') {
                 isFreeRetry = true;
+                alert("مبروك! حصلت على لفة مجانية إضافية.");
             } else if (prize.val > 0) {
                 await db.collection("users").doc(auth.currentUser.uid).update({
                     coins: firebase.firestore.FieldValue.increment(prize.val)
@@ -291,6 +263,7 @@
             document.getElementById('overlay').style.display = 'flex';
             isSpinning = false;
             document.getElementById('btnSpin').disabled = false;
+            document.getElementById('btnSpin').innerText = isFreeRetry ? "لف مجاناً الآن!" : "لف العجلة (15 نقطة)";
         }
 
         function closePopup() {
