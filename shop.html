@@ -65,10 +65,7 @@
             <a href="index.html" style="text-decoration: none;"><h1>ELITE X-PRIME</h1></a>
             <div class="user-balance"><i class="fas fa-coins"></i> <span id="userCoins">0</span> <span>عملة</span></div>
         </header>
-<div class="product-card" style="grid-column: 1 / -1; background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), var(--glass)); border: 2px solid var(--gold); border-radius: 30px; margin-bottom: 20px;">
-    <div style="padding: 10px; background: var(--gold); color: #000; font-weight: 900; border-radius: 0 0 20px 20px; display: inline-block; margin-bottom: 15px; font-size: 0.8rem;">
-        <i class="fas fa-bolt"></i> شحن سريع (تلقائي)
-    </div>
+
     <h3 style="font-size: 1.2rem; color: var(--gold);">اشترِ عملات ذهبية الآن</h3>
     <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">كل 3 عملات بـ 1 جنيه فقط!</p>
     
@@ -218,11 +215,6 @@
 // حاسبة السعر
 
 
-function openDepositModal() {
-    const amount = document.getElementById('buyAmount').value;
-    if(!amount || amount <= 0) return showToast("⚠️ أدخل عدد العملات أولاً!");
-    document.getElementById('depositModal').style.display = 'flex';
-}
 
 function closeDepositModal() {
     document.getElementById('depositModal').style.display = 'none';
