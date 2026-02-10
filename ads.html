@@ -97,24 +97,16 @@ function displayRandomBanner() {
 
     try {
         if (randomChoice < 0.4) {
-            // Adsterra - الطريقة التقليدية المعدلة
-            const script1 = document.createElement('script');
-            script1.type = 'text/javascript';
-            script1.text = `atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };`;
-            const script2 = document.createElement('script');
-            script2.type = 'text/javascript';
-            script2.src = 'https://www.highperformanceformat.com/invoke.js';
-            slot.appendChild(script1);
-            slot.appendChild(script2);
+            // Adsterra الإعداد الصحيح
+            window.atOptions = { 'key' : 'bd100f5de33bb8359ef151eb1e7eecef', 'format' : 'iframe', 'height' : 250, 'width' : 300, 'params' : {} };
+            const s = document.createElement('script');
+            s.src = 'https://www.highperformanceformat.com/bd100f5de33bb8359ef151eb1e7eecef/invoke.js';
+            slot.appendChild(s);
         } else if (randomChoice < 0.8) {
             // Monetag
-            const mDiv = document.createElement('div');
-            mDiv.id = "monetag-ad-inner";
-            slot.appendChild(mDiv);
             const mScript = document.createElement('script');
             mScript.src = 'https://nap5k.com/tag.min.js';
             mScript.setAttribute('data-zone', '10586190');
-            mScript.async = true;
             slot.appendChild(mScript);
         } else {
             slot.innerHTML = fallbackAd;
@@ -122,35 +114,29 @@ function displayRandomBanner() {
     } catch (e) {
         slot.innerHTML = fallbackAd;
     }
-
-    setTimeout(() => {
-        if (slot.innerHTML === "" || slot.offsetHeight < 20) {
-            slot.innerHTML = fallbackAd;
-        }
-    }, 4000);
 }
-
-auth.onAuthStateChanged(user => {
-    if (user) { 
-        userUID = user.uid; 
-        startSync(); 
-        setTimeout(displayRandomBanner, 1000); 
-    } else {
-        document.getElementById('msg').innerText = "يرجى تسجيل الدخول أولاً";
-    }
-});
 
 function startSync() {
     if(!userUID) return;
     db.collection("users").doc(userUID).onSnapshot(doc => {
         if (!doc.exists || isLocked) return;
         const data = doc.data();
+        
+        // تصفير العداد برمجياً بناءً على التاريخ
+        const today = new Date().toLocaleDateString();
+        let displayCount = (data.lastAdDate === today) ? (data.videosWatchedToday || 0) : 0;
+
         document.getElementById('balance').innerText = (data.balance || 0).toFixed(2);
-        document.getElementById('dailyCount').innerText = `${data.videosWatchedToday || 0} / 15`;
-        if (data.videosWatchedToday >= 15) { updateUI("انتهت مهمات اليوم!", true); }
-        else { updateUI("جاهز لبدء المهمة", false); }
+        document.getElementById('dailyCount').innerText = `${displayCount} / 15`;
+        
+        if (displayCount >= 15) { 
+            updateUI("انتهت مهمات اليوم!", true); 
+        } else { 
+            updateUI("جاهز لبدء المهمة", false); 
+        }
     });
 }
+
 
 function runVideoProcess() {
     isLocked = true; 
@@ -194,29 +180,29 @@ async function savePoints() {
         const userRef = db.collection("users").doc(userUID);
         const docSnap = await userRef.get();
         const userData = docSnap.data();
+        const today = new Date().toLocaleDateString();
 
-        // بيانات التحديث العادية
+        // تجهيز بيانات التحديث
         let updateData = {
             balance: firebase.firestore.FieldValue.increment(1.0),
-            videosWatchedToday: firebase.firestore.FieldValue.increment(1),
+            lastAdDate: today,
             lastAdTime: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // --- 🟢 منطق الإحالة (Referral) 🟢 ---
-        // إذا كان المستخدم مسجل عبر رابط إعلان ولم يتم دفع المكافأة للداعي بعد
-        if (userData.referredBy && userData.referralPaid === false) {
-            const rewardAmount = 5; // المبلغ الذي سيحصل عليه الشخص الذي دعا
-
-            // 1. إرسال المكافأة للشخص الداعي
-            await db.collection("users").doc(userData.referredBy).update({
-                coins: firebase.firestore.FieldValue.increment(rewardAmount)
-            });
-
-            // 2. تحديث حالة المستخدم الحالي لكي لا تُدفع المكافأة مرة أخرى
-            updateData.referralPaid = true;
-            console.log("تم منح مكافأة الإحالة لصاحب الدعوة!");
+        // لو يوم جديد، ابدأ العداد من 1، لو نفس اليوم زود 1
+        if (userData.lastAdDate === today) {
+            updateData.videosWatchedToday = firebase.firestore.FieldValue.increment(1);
+        } else {
+            updateData.videosWatchedToday = 1;
         }
-        // ---------------------------------------
+
+        // --- نظام مكافأة الشخص الذي دعاك ---
+        if (userData.referredBy && userData.referralPaid === false) {
+            await db.collection("users").doc(userData.referredBy).update({
+                coins: firebase.firestore.FieldValue.increment(5) // الداعي يأخذ 5 عملات
+            });
+            updateData.referralPaid = true; // نغيرها لـ true عشان المكافأة متتكررش
+        }
 
         await userRef.update(updateData);
         updateUI("✅ تمت الإضافة!", false);
@@ -228,6 +214,7 @@ async function savePoints() {
         document.getElementById('rewardBtn').style.display = 'block';
     }
 }
+
 
 
 function updateUI(text, btnState) {
