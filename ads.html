@@ -68,7 +68,17 @@ const auth = firebase.auth();
 
 let userUID = null;
 let isLocked = false; 
+auth.onAuthStateChanged(user => {
+    if (user) { 
+        userUID = user.uid; 
+        startSync(); 
+        setTimeout(displayRandomBanner, 1000); 
+    } else {
+        window.location.href = "login.html"; // توجيه لصفحة الدخول لو مش مسجل
+    }
+});
 
+    
 const DIRECT_LINKS = [
     "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f", 
     "https://otieu.com/4/10586232",
