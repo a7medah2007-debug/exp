@@ -191,18 +191,44 @@ async function collectReward() {
 async function savePoints() {
     updateUI('<div class="loader"></div> جاري الحفظ...', true);
     try {
-        await db.collection("users").doc(userUID).update({
+        const userRef = db.collection("users").doc(userUID);
+        const docSnap = await userRef.get();
+        const userData = docSnap.data();
+
+        // بيانات التحديث العادية
+        let updateData = {
             balance: firebase.firestore.FieldValue.increment(1.0),
             videosWatchedToday: firebase.firestore.FieldValue.increment(1),
             lastAdTime: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        };
+
+        // --- 🟢 منطق الإحالة (Referral) 🟢 ---
+        // إذا كان المستخدم مسجل عبر رابط إعلان ولم يتم دفع المكافأة للداعي بعد
+        if (userData.referredBy && userData.referralPaid === false) {
+            const rewardAmount = 5; // المبلغ الذي سيحصل عليه الشخص الذي دعا
+
+            // 1. إرسال المكافأة للشخص الداعي
+            await db.collection("users").doc(userData.referredBy).update({
+                coins: firebase.firestore.FieldValue.increment(rewardAmount)
+            });
+
+            // 2. تحديث حالة المستخدم الحالي لكي لا تُدفع المكافأة مرة أخرى
+            updateData.referralPaid = true;
+            console.log("تم منح مكافأة الإحالة لصاحب الدعوة!");
+        }
+        // ---------------------------------------
+
+        await userRef.update(updateData);
         updateUI("✅ تمت الإضافة!", false);
         setTimeout(() => { location.reload(); }, 1000);
+
     } catch(e) {
+        console.error(e);
         updateUI("❌ خطأ، حاول مجدداً", false);
         document.getElementById('rewardBtn').style.display = 'block';
     }
 }
+
 
 function updateUI(text, btnState) {
     document.getElementById('msg').innerHTML = text;
