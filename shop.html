@@ -188,23 +188,37 @@
         document.getElementById('confirmPass').value = ""; // تنظيف الحقل
     }
 
-    async function confirmOrder() {
+        async function confirmOrder() {
         const pass = document.getElementById('confirmPass').value;
         const pID = document.getElementById('playerID').value;
+        
         if(!pass) return showToast("⚠️ أدخل الباسورد!");
         if(selectedProduct.type === 'request' && !pID) return showToast("⚠️ أدخل الـ ID!");
 
-        showToast("جاري التحقق والمعالجة...");
+        showToast("جاري المعالجة والتحقق...");
+        
         try {
+            // 1. إعادة التحقق من الهوية بالباسورد (أمان إضافي)
             const credential = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
             await auth.currentUser.reauthenticateWithCredential(credential);
 
+            // 2. بدء عملية التحويل (Transaction) لضمان دقة الرصيد
             await db.runTransaction(async (transaction) => {
                 const userRef = db.collection("users").doc(auth.currentUser.uid);
+                const userDoc = await transaction.get(userRef);
                 
-                // 1. الشحن اليدوي (ID)
+                if (!userDoc.exists) throw "⚠️ الحساب غير موجود!";
+                
+                const currentCoins = userDoc.data().coins || 0;
+
+                // التأكد من أن الرصيد يكفي من داخل السيرفر
+                if (currentCoins < selectedProduct.price) {
+                    throw "⚠️ عملاتك لا تكفي لإتمام هذه العملية.";
+                }
+
+                // --- الحالة الأولى: الشحن اليدوي (ID) ---
                 if(selectedProduct.type === 'request') {
-                    transaction.update(userRef, { coins: userData.coins - selectedProduct.price });
+                    transaction.update(userRef, { coins: currentCoins - selectedProduct.price });
                     transaction.set(db.collection("orders").doc(), {
                         user_id: auth.currentUser.uid,
                         user_email: auth.currentUser.email,
@@ -219,7 +233,7 @@
                     document.getElementById('resultPin').style.color = "var(--gold)";
                     document.getElementById('copyBtn').style.display = 'none';
                 } 
-                // 2. نظام الأكواد (Pin) - تم الربط مع مجموعة codes
+                // --- الحالة الثانية: نظام الأكواد الفوري (Pin) ---
                 else {
                     const codesRef = db.collection("codes")
                                       .where("product_id", "==", selectedProduct.id)
@@ -227,10 +241,10 @@
                                       .limit(1);
                     
                     const v = await codesRef.get();
-                    if(v.empty) throw "⚠️ نعتذر! هذا المنتج نفذ حالياً.";
+                    if(v.empty) throw "⚠️ نعتذر! هذا المنتج نفذ حالياً من المخزن.";
                     
                     const codeDoc = v.docs[0];
-                    transaction.update(userRef, { coins: userData.coins - selectedProduct.price });
+                    transaction.update(userRef, { coins: currentCoins - selectedProduct.price });
                     transaction.update(codeDoc.ref, { 
                         is_used: true, 
                         buyer_id: auth.currentUser.uid,
@@ -249,9 +263,12 @@
 
         } catch (e) { 
             console.error(e);
-            showToast(typeof e === 'string' ? e : "❌ عذراً! الباسورد غير صحيح"); 
+            // لو الخطأ سببه الباسورد أو أي حاجة تانية هيظهر هنا
+            const errorMsg = e.code === "auth/wrong-password" ? "❌ الباسورد غير صحيح!" : (e.message || e);
+            showToast(errorMsg); 
         }
     }
+
 
     function filterCat(cat, btn) {
         currentCat = cat;
@@ -266,7 +283,11 @@
         showToast("✅ تم نسخ الكود بنجاح");
     }
 
-    function closeModal() { document.getElementById('buyModal').style.display = 'none'; }
+        function closeModal() { 
+        document.getElementById('buyModal').style.display = 'none';
+        document.getElementById('confirmPass').value = ""; // تنظيف الباسورد
+        document.getElementById('playerID').value = "";   // تنظيف الـ ID
+    }
 
     function showToast(msg) {
         const t = document.getElementById('toast');
