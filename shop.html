@@ -31,19 +31,13 @@
         
         .user-balance { background: var(--glass); display: inline-flex; align-items: center; gap: 8px; padding: 10px 25px; border-radius: 50px; border: 1px solid var(--border); margin-top: 10px; color: var(--gold); font-weight: 900; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 
-        /* ستايل الفئات المتطور */
         .category-tabs { display: flex; gap: 10px; overflow-x: auto; padding: 15px 5px; margin-bottom: 20px; scrollbar-width: none; }
         .category-tabs::-webkit-scrollbar { display: none; }
         .tab-btn { padding: 12px 22px; border-radius: 15px; background: var(--glass); border: 1px solid var(--border); color: #94a3b8; cursor: pointer; white-space: nowrap; transition: 0.3s; font-size: 0.9rem; font-weight: 600; }
         .tab-btn.active { background: var(--neon); color: #000; border-color: var(--neon); box-shadow: 0 0 20px rgba(0, 242, 255, 0.4); }
 
-        /* جريد المنتجات */
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .product-card { background: var(--glass); border-radius: 25px; border: 1px solid var(--border); padding: 15px; text-align: center; transition: 0.4s; position: relative; overflow: hidden; }
-        .product-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px; background: linear-gradient(90deg, var(--purple), var(--neon)); opacity: 0; transition: 0.3s; }
-        .product-card:hover { border-color: var(--neon); transform: translateY(-8px); }
-        .product-card:hover::before { opacity: 1; }
-        
         .product-card img { width: 100%; height: 90px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3)); }
         .product-card h3 { font-size: 0.9rem; height: 40px; overflow: hidden; margin-bottom: 8px; color: #f1f5f9; }
         .product-card .price-tag { color: var(--gold); font-size: 1.3rem; font-weight: 900; }
@@ -52,19 +46,14 @@
         .buy-now { width: 100%; padding: 12px; margin-top: 15px; background: linear-gradient(90deg, var(--purple), var(--neon)); border: none; border-radius: 15px; color: white; font-weight: 900; cursor: pointer; transition: 0.3s; }
         .buy-now:active { transform: scale(0.95); }
 
-        /* المودال */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(10px); }
         .modal-content { background: #0f172a; border: 2px solid var(--border); border-radius: 35px; padding: 30px; width: 92%; max-width: 400px; text-align: center; position: relative; }
-        .modal-content h2 { margin-bottom: 10px; font-size: 1.4rem; }
-        .modal-content input { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border); background: #020617; color: white; margin: 20px 0; text-align: center; font-size: 1.1rem; outline: none; }
-        .modal-content input:focus { border-color: var(--neon); }
+        .modal-content input { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border); background: #020617; color: white; margin: 10px 0; text-align: center; font-size: 1.1rem; outline: none; }
         
-        .code-box { background: #000; padding: 20px; border: 2px dashed var(--neon); border-radius: 20px; margin-top: 20px; display: none; animation: slideUp 0.5s ease; }
+        .code-box { background: #000; padding: 20px; border: 2px dashed var(--neon); border-radius: 20px; margin-top: 20px; display: none; }
         .code-text { font-family: 'Courier New', monospace; font-size: 1.6rem; color: var(--neon); letter-spacing: 2px; font-weight: 900; }
 
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 14px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 2000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 14px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 2000; }
     </style>
 </head>
 <body>
@@ -74,7 +63,6 @@
     <div class="container">
         <header>
             <a href="index.html" style="text-decoration: none;"><h1>ELITE X-PRIME</h1></a>
-
             <div class="user-balance"><i class="fas fa-coins"></i> <span id="userCoins">0</span> <span>عملة</span></div>
         </header>
 
@@ -85,8 +73,7 @@
             <button class="tab-btn" onclick="filterCat('net', this)">باقات نت</button>
         </div>
 
-        <div class="products-grid" id="productsGrid">
-            </div>
+        <div class="products-grid" id="productsGrid"></div>
     </div>
 
     <div class="modal" id="buyModal">
@@ -95,21 +82,24 @@
             <p id="modalPrice" style="color:var(--gold); font-weight: 800;"></p>
             
             <div id="step-1">
+                <div id="idInputSection" style="display: none;">
+                    <input type="text" id="playerID" placeholder="أدخل ID اللعبة الخاص بك">
+                </div>
+
                 <input type="password" id="confirmPass" placeholder="أدخل كلمة مرور حسابك">
                 <button class="buy-now" onclick="confirmOrder()">تأكيد العملية الآن</button>
-                <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer; font-weight: 600;" onclick="closeModal()">إلغاء وإغلاق</button>
+                <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeModal()">إلغاء</button>
             </div>
 
             <div id="step-2" class="code-box">
-                <p style="font-size: 0.85rem; margin-bottom:10px; color: #94a3b8;">تم سحب الكود بنجاح:</p>
+                <p id="statusMsg" style="font-size: 0.85rem; margin-bottom:10px; color: #94a3b8;">تم بنجاح:</p>
                 <div class="code-text" id="resultPin"></div>
-                <button class="buy-now" style="margin-top:20px; background:var(--gold);" onclick="closeModal()">قم بنسخ الكود</button>
+                <button id="copyBtn" class="buy-now" style="margin-top:20px; background:var(--gold);" onclick="copyCode()">نسخ الكود</button>
             </div>
         </div>
     </div>
 
 <script>
-    // --- إعدادات فايربيز ---
     const firebaseConfig = {
         apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
         authDomain: "rewardsite-9025d.firebaseapp.com",
@@ -126,7 +116,6 @@
     let selectedProduct = null;
     let currentCat = 'all';
 
-    // مراقبة حالة المستخدم وجلب بياناته
     auth.onAuthStateChanged(user => {
         if(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
@@ -134,38 +123,97 @@
                 document.getElementById('userCoins').innerText = userData.coins || 0;
             });
             loadStore();
-        } else {
-            window.location.href = "login.html"; 
-        }
+        } else { window.location.href = "login.html"; }
     });
 
-    // جلب المنتجات من فايربيز
     async function loadStore() {
         const grid = document.getElementById('productsGrid');
-        grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:20px; color:#64748b;">جاري تحديث المخزن...</p>';
+        grid.innerHTML = '';
         
+        // 1. إضافة بطاقة "شحن شدات" اليدوية (اللي أنت طلبتها)
+        if (currentCat === 'all' || currentCat === 'games') {
+            grid.innerHTML += `
+                <div class="product-card">
+                    <img src="https://cdn-offer-photos.zeusx.com/ee94bd32-6783-4c57-9a07-7e2a358b95d4.jpg" alt="PUBG">
+                    <h3>شحن 60 شدة ببجي (ID)</h3>
+                    <div class="price-tag">240 <span>عملة</span></div>
+                    <button class="buy-now" onclick="openModal('manual_pubg', '60 شدة ببجي', 240, 'request')">شحن بالـ ID</button>
+                </div>
+            `;
+        }
+
+        // 2. سحب باقي منتجاتك من فايربيز (نفس كودك الأصلي)
         try {
             const snapshot = await db.collection("products").get();
-            grid.innerHTML = '';
-
             snapshot.forEach(doc => {
                 const p = doc.data();
                 const coinPrice = (parseFloat(p.price) || 0) * 4;
-
                 if(currentCat === 'all' || p.category === currentCat) {
                     grid.innerHTML += `
                         <div class="product-card">
                             <img src="${p.image}" alt="${p.name}">
                             <h3>${p.name}</h3>
                             <div class="price-tag">${coinPrice} <span>عملة</span></div>
-                            <button class="buy-now" onclick="openModal('${doc.id}', '${p.name}', ${coinPrice})">شراء</button>
+                            <button class="buy-now" onclick="openModal('${doc.id}', '${p.name}', ${coinPrice}, '${p.type || 'pin'}')">شراء</button>
                         </div>
                     `;
                 }
             });
-        } catch (e) {
-            showToast("حدث خطأ في الاتصال بالخزنة!");
-        }
+        } catch (e) { showToast("خطأ في تحميل المنتجات"); }
+    }
+
+    function openModal(id, name, price, type) {
+        if(userData.coins < price) { showToast("❌ عملاتك لا تكفي!"); return; }
+        selectedProduct = { id, name, price, type };
+        document.getElementById('modalTitle').innerText = name;
+        document.getElementById('modalPrice').innerText = price + " عملة";
+        document.getElementById('idInputSection').style.display = (type === 'request') ? 'block' : 'none';
+        document.getElementById('buyModal').style.display = 'flex';
+        document.getElementById('step-1').style.display = 'block';
+        document.getElementById('step-2').style.display = 'none';
+    }
+
+    async function confirmOrder() {
+        const pass = document.getElementById('confirmPass').value;
+        const pID = document.getElementById('playerID').value;
+        if(!pass) return showToast("⚠️ أدخل الباسورد!");
+        if(selectedProduct.type === 'request' && !pID) return showToast("⚠️ أدخل الـ ID!");
+
+        showToast("جاري المعالجة...");
+        try {
+            const credential = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
+            await auth.currentUser.reauthenticateWithCredential(credential);
+
+            await db.runTransaction(async (transaction) => {
+                // شحن يدوي (Request)
+                if(selectedProduct.type === 'request') {
+                    transaction.update(db.collection("users").doc(auth.currentUser.uid), { coins: userData.coins - selectedProduct.price });
+                    transaction.set(db.collection("orders").doc(), {
+                        user_id: auth.currentUser.uid,
+                        product: selectedProduct.name,
+                        player_id: pID,
+                        status: "pending",
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    document.getElementById('statusMsg').innerText = "تم إرسال طلبك:";
+                    document.getElementById('resultPin').innerText = "قيد التنفيذ";
+                    document.getElementById('copyBtn').style.display = 'none';
+                } 
+                // نظام الأكواد القديم (Pin)
+                else {
+                    const v = await db.collection("vault").where("product_id", "==", selectedProduct.id).where("is_used", "==", false).limit(1).get();
+                    if(v.empty) throw "⚠️ المخزن فارغ!";
+                    const code = v.docs[0];
+                    transaction.update(db.collection("users").doc(auth.currentUser.uid), { coins: userData.coins - selectedProduct.price });
+                    transaction.update(code.ref, { is_used: true, buyer_id: auth.currentUser.uid });
+                    document.getElementById('statusMsg').innerText = "تم سحب الكود:";
+                    document.getElementById('resultPin').innerText = code.data().pin_code;
+                    document.getElementById('copyBtn').style.display = 'block';
+                }
+                document.getElementById('step-1').style.display = 'none';
+                document.getElementById('step-2').style.display = 'block';
+            });
+        } catch (e) { showToast(e); }
     }
 
     function filterCat(cat, btn) {
@@ -174,89 +222,15 @@
         btn.classList.add('active');
         loadStore();
     }
-
-    function openModal(id, name, price) {
-        if(userData.coins < price) {
-            showToast("❌ عملاتك لا تكفي لإتمام هذه العملية!");
-            return;
-        }
-        selectedProduct = { id, name, price };
-        document.getElementById('modalTitle').innerText = name;
-        document.getElementById('modalPrice').innerText = price + " عملة";
-        document.getElementById('buyModal').style.display = 'flex';
-        document.getElementById('step-1').style.display = 'block';
-        document.getElementById('step-2').style.display = 'none';
-        document.getElementById('confirmPass').value = '';
+    function copyCode() {
+        navigator.clipboard.writeText(document.getElementById('resultPin').innerText);
+        showToast("✅ تم النسخ");
     }
-
-    // --- الوظيفة الأساسية للشراء ومعالجة الأخطاء ---
-    async function confirmOrder() {
-        const pass = document.getElementById('confirmPass').value;
-        if(!pass) return showToast("⚠️ يرجى إدخال كلمة المرور أولاً!");
-
-        showToast("جاري التحقق...");
-
-        try {
-            // التحقق من صحة كلمة المرور يدوياً لإظهار رسالة مخصصة
-            const userEmail = auth.currentUser.email;
-            const credential = firebase.auth.EmailAuthProvider.credential(userEmail, pass);
-            
-            await auth.currentUser.reauthenticateWithCredential(credential).catch(err => {
-                // هنا يتم فحص نوع الخطأ وإظهار رسالة الباسورد بالعربي
-                if(err.code === 'auth/wrong-password') {
-                    throw "❌ كلمة المرور التي أدخلتها غير صحيحة!";
-                } else {
-                    throw "❌ حدث خطأ في تسجيل الدخول، حاول مجدداً.";
-                }
-            });
-
-            // بدء عملية الخصم وسحب الكود
-            await db.runTransaction(async (transaction) => {
-                const vaultSnap = await db.collection("vault")
-                    .where("product_id", "==", selectedProduct.id)
-                    .where("is_used", "==", false)
-                    .limit(1).get();
-
-                if(vaultSnap.empty) throw "⚠️ عذراً، هذا المنتج نفذ من المخزن حالياً!";
-
-                const codeDoc = vaultSnap.docs[0];
-                const pin = codeDoc.data().pin_code;
-
-                // خصم الرصيد
-                transaction.update(db.collection("users").doc(auth.currentUser.uid), {
-                    coins: userData.coins - selectedProduct.price
-                });
-
-                // حرق الكود وربطه بالمشتري
-                transaction.update(codeDoc.ref, {
-                    is_used: true,
-                    buyer_id: auth.currentUser.uid,
-                    purchase_date: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                // عرض الكود النهائي
-                document.getElementById('resultPin').innerText = pin;
-                document.getElementById('step-1').style.display = 'none';
-                document.getElementById('step-2').style.display = 'block';
-                showToast("✅ تمت العملية بنجاح!");
-            });
-
-        } catch (err) {
-            // عرض الرسالة المخصصة (سواء كانت باسورد غلط أو نفاذ الكمية)
-            showToast(err);
-        }
-    }
-
     function closeModal() { document.getElementById('buyModal').style.display = 'none'; }
-
     function showToast(msg) {
         const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.display = 'block';
-        // تغيير لون التوست إذا كان خطأ
-        t.style.background = msg.includes("❌") ? "#ff4b4b" : "#00f2ff";
-        t.style.color = msg.includes("❌") ? "#fff" : "#000";
-        setTimeout(() => t.style.display = 'none', 4000);
+        t.innerText = msg; t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 3000);
     }
 </script>
 </body>
