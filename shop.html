@@ -65,7 +65,40 @@
             <a href="index.html" style="text-decoration: none;"><h1>ELITE X-PRIME</h1></a>
             <div class="user-balance"><i class="fas fa-coins"></i> <span id="userCoins">0</span> <span>عملة</span></div>
         </header>
+<div class="product-card" style="grid-column: 1 / -1; background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), var(--glass)); border: 2px solid var(--gold); border-radius: 30px; margin-bottom: 20px;">
+    <div style="padding: 10px; background: var(--gold); color: #000; font-weight: 900; border-radius: 0 0 20px 20px; display: inline-block; margin-bottom: 15px; font-size: 0.8rem;">
+        <i class="fas fa-bolt"></i> شحن سريع (تلقائي)
+    </div>
+    <h3 style="font-size: 1.2rem; color: var(--gold);">اشترِ عملات ذهبية الآن</h3>
+    <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">كل 3 عملات بـ 1 جنيه فقط!</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+        <input type="number" id="buyAmount" placeholder="أدخل عدد العملات (مثلاً: 30)" oninput="calcPrice(this.value)" style="width: 80%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: #020617; color: white; text-align: center;">
+        <div id="priceResult" style="font-weight: bold; color: var(--neon); font-size: 0.9rem;">السعر المطلوب: 0 جنيه</div>
+        <button class="buy-now" style="background: var(--gold); color: #000; width: 80%;" onclick="openDepositModal()">اطلب الشحن الآن</button>
+    </div>
+</div>
 
+<div class="modal" id="depositModal">
+    <div class="modal-content" style="border-color: var(--gold);">
+        <h2 style="color: var(--gold);">إتمام عملية الدفع</h2>
+        <p style="font-size: 0.85rem; margin-top: 10px;">قم بتحويل المبلغ المطلوب إلى الرقم التالي:</p>
+        <div style="background: #000; padding: 15px; border-radius: 15px; margin: 15px 0; border: 1px dashed var(--gold); font-size: 1.3rem; color: #fff; letter-spacing: 2px;">
+            01104452609
+        </div>
+        <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 15px;">
+            سيتم الشحن خلال ثوانٍ (بحد أقصى 7 ساعات في حال المراجعة اليدوية).
+        </p>
+
+        <input type="text" id="senderPhone" placeholder="رقم فودافون كاش الذي حولت منه">
+        <label style="display: block; margin-top: 10px; font-size: 0.8rem; color: #94a3b8;">ارفق صورة التحويل (سكرين شوت):</label>
+        <input type="file" id="transferScreenshot" accept="image/*" style="font-size: 0.8rem;">
+
+        <button class="buy-now" style="background: var(--gold); color: #000;" onclick="submitDeposit()">تأكيد إرسال الطلب</button>
+        <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeDepositModal()">إلغاء</button>
+    </div>
+</div>
+        
         <div class="category-tabs">
             <button class="tab-btn active" onclick="filterCat('all', this)">الكل</button>
             <button class="tab-btn" onclick="filterCat('cards', this)">كروت شحن</button>
@@ -142,17 +175,8 @@
             const snapshot = await db.collection("products").get();
             grid.innerHTML = '';
 
-            // 1. إضافة بطاقة "شحن شدات" اليدوية الثابتة
-            if (currentCat === 'all' || currentCat === 'games') {
-                grid.innerHTML += `
-                    <div class="product-card">
-                        <img src="https://cdn-offer-photos.zeusx.com/ee94bd32-6783-4c57-9a07-7e2a358b95d4.jpg" alt="PUBG">
-                        <h3>شحن 60 شدة ببجي (ID)</h3>
-                        <div class="price-tag">240 <span>عملة</span></div>
-                        <button class="buy-now" onclick="openModal('manual_pubg', '60 شدة ببجي', 240, 'request')">شحن بالـ ID</button>
-                    </div>
-                `;
-            }
+            
+            
 
             // 2. سحب المنتجات المضافة من الإدارة
             snapshot.forEach(doc => {
@@ -187,7 +211,54 @@
         document.getElementById('step-2').style.display = 'none';
         document.getElementById('confirmPass').value = ""; // تنظيف الحقل
     }
+// حاسبة السعر
+function calcPrice(coins) {
+    const price = (coins * 0.333).toFixed(2); // الـ 3 بجنيه تقريباً
+    document.getElementById('priceResult').innerText = `السعر المطلوب: ${price} جنيه مصري`;
+}
 
+function openDepositModal() {
+    const amount = document.getElementById('buyAmount').value;
+    if(!amount || amount <= 0) return showToast("⚠️ أدخل عدد العملات أولاً!");
+    document.getElementById('depositModal').style.display = 'flex';
+}
+
+function closeDepositModal() {
+    document.getElementById('depositModal').style.display = 'none';
+}
+
+async function submitDeposit() {
+    const amount = document.getElementById('buyAmount').value;
+    const phone = document.getElementById('senderPhone').value;
+    const file = document.getElementById('transferScreenshot').files[0];
+
+    if(!phone || !file) return showToast("⚠️ يرجى إدخال الرقم وارفاق الصورة!");
+
+    showToast("جاري رفع طلبك...");
+
+    try {
+        // ملاحظة: لرفع الصورة ستحتاج Firebase Storage، ولكن كحل بديل مؤقت
+        // سنقوم بحفظ البيانات في Firestore وإرسال تنبيه لك
+        
+        await db.collection("deposit_requests").add({
+            user_id: auth.currentUser.uid,
+            user_email: auth.currentUser.email,
+            coins_requested: amount,
+            price_to_pay: (amount * 0.333).toFixed(2),
+            sender_phone: phone,
+            status: "pending",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast("✅ تم إرسال طلبك بنجاح!");
+        closeDepositModal();
+        document.getElementById('buyAmount').value = "";
+    } catch (e) {
+        console.error(e);
+        showToast("❌ حدث خطأ أثناء إرسال الطلب.");
+    }
+}
+    
         async function confirmOrder() {
         const pass = document.getElementById('confirmPass').value;
         const pID = document.getElementById('playerID').value;
