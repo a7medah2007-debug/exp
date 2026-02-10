@@ -113,7 +113,8 @@
         messagingSenderId: "777911247728",
         appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
     };
-    firebase.initializeApp(firebaseConfig);
+    
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
@@ -125,7 +126,9 @@
         if(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 userData = doc.data();
-                document.getElementById('userCoins').innerText = userData.coins || 0;
+                if(userData) {
+                    document.getElementById('userCoins').innerText = userData.coins || 0;
+                }
             });
             loadStore();
         } else { window.location.href = "login.html"; }
@@ -133,25 +136,28 @@
 
     async function loadStore() {
         const grid = document.getElementById('productsGrid');
-        grid.innerHTML = '';
+        grid.innerHTML = '<div style="color:var(--neon); text-align:center; width:100%;">جاري تحميل المتجر الملكي...</div>';
         
-        // 1. إضافة بطاقة "شحن شدات" اليدوية (اللي أنت طلبتها)
-        if (currentCat === 'all' || currentCat === 'games') {
-            grid.innerHTML += `
-                <div class="product-card">
-                    <img src="https://cdn-offer-photos.zeusx.com/ee94bd32-6783-4c57-9a07-7e2a358b95d4.jpg" alt="PUBG">
-                    <h3>شحن 60 شدة ببجي (ID)</h3>
-                    <div class="price-tag">240 <span>عملة</span></div>
-                    <button class="buy-now" onclick="openModal('manual_pubg', '60 شدة ببجي', 240, 'request')">شحن بالـ ID</button>
-                </div>
-            `;
-        }
-
-        // 2. سحب باقي منتجاتك من فايربيز (نفس كودك الأصلي)
         try {
             const snapshot = await db.collection("products").get();
+            grid.innerHTML = '';
+
+            // 1. إضافة بطاقة "شحن شدات" اليدوية الثابتة
+            if (currentCat === 'all' || currentCat === 'games') {
+                grid.innerHTML += `
+                    <div class="product-card">
+                        <img src="https://cdn-offer-photos.zeusx.com/ee94bd32-6783-4c57-9a07-7e2a358b95d4.jpg" alt="PUBG">
+                        <h3>شحن 60 شدة ببجي (ID)</h3>
+                        <div class="price-tag">240 <span>عملة</span></div>
+                        <button class="buy-now" onclick="openModal('manual_pubg', '60 شدة ببجي', 240, 'request')">شحن بالـ ID</button>
+                    </div>
+                `;
+            }
+
+            // 2. سحب المنتجات المضافة من الإدارة
             snapshot.forEach(doc => {
                 const p = doc.data();
+                // السعر مضروب في 4 كما في كودك الأصلي
                 const coinPrice = (parseFloat(p.price) || 0) * 4;
                 if(currentCat === 'all' || p.category === currentCat) {
                     grid.innerHTML += `
@@ -164,11 +170,14 @@
                     `;
                 }
             });
-        } catch (e) { showToast("خطأ في تحميل المنتجات"); }
+        } catch (e) { 
+            console.error(e);
+            showToast("خطأ في تحميل المنتجات"); 
+        }
     }
 
     function openModal(id, name, price, type) {
-        if(userData.coins < price) { showToast("❌ عملاتك لا تكفي!"); return; }
+        if(!userData || userData.coins < price) { showToast("❌ عملاتك لا تكفي!"); return; }
         selectedProduct = { id, name, price, type };
         document.getElementById('modalTitle').innerText = name;
         document.getElementById('modalPrice').innerText = price + " عملة";
@@ -176,6 +185,7 @@
         document.getElementById('buyModal').style.display = 'flex';
         document.getElementById('step-1').style.display = 'block';
         document.getElementById('step-2').style.display = 'none';
+        document.getElementById('confirmPass').value = ""; // تنظيف الحقل
     }
 
     async function confirmOrder() {
@@ -184,49 +194,63 @@
         if(!pass) return showToast("⚠️ أدخل الباسورد!");
         if(selectedProduct.type === 'request' && !pID) return showToast("⚠️ أدخل الـ ID!");
 
-        showToast("جاري المعالجة...");
+        showToast("جاري التحقق والمعالجة...");
         try {
             const credential = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
             await auth.currentUser.reauthenticateWithCredential(credential);
 
-                        await db.runTransaction(async (transaction) => {
-                // شحن يدوي (Request)
+            await db.runTransaction(async (transaction) => {
+                const userRef = db.collection("users").doc(auth.currentUser.uid);
+                
+                // 1. الشحن اليدوي (ID)
                 if(selectedProduct.type === 'request') {
-                    transaction.update(db.collection("users").doc(auth.currentUser.uid), { coins: userData.coins - selectedProduct.price });
+                    transaction.update(userRef, { coins: userData.coins - selectedProduct.price });
                     transaction.set(db.collection("orders").doc(), {
                         user_id: auth.currentUser.uid,
+                        user_email: auth.currentUser.email,
                         product: selectedProduct.name,
                         player_id: pID,
                         status: "pending",
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
-                    // التعديل هنا:
                     document.getElementById('statusMsg').innerText = "حالة الطلب:";
                     document.getElementById('resultPin').innerText = "قيد التنفيذ ⏳";
-                    document.getElementById('resultPin').style.color = "var(--gold)"; // تغيير اللون للذهبي
-                    document.getElementById('copyBtn').style.display = 'none'; // إخفاء زر النسخ
+                    document.getElementById('resultPin').style.color = "var(--gold)";
+                    document.getElementById('copyBtn').style.display = 'none';
                 } 
-                // نظام الأكواد (Pin)
+                // 2. نظام الأكواد (Pin) - تم الربط مع مجموعة codes
                 else {
-                    const v = await db.collection("vault").where("product_id", "==", selectedProduct.id).where("is_used", "==", false).limit(1).get();
-                    if(v.empty) throw "⚠️ المخزن فارغ!";
-                    const code = v.docs[0];
-                    transaction.update(db.collection("users").doc(auth.currentUser.uid), { coins: userData.coins - selectedProduct.price });
-                    transaction.update(code.ref, { is_used: true, buyer_id: auth.currentUser.uid });
+                    const codesRef = db.collection("codes")
+                                      .where("product_id", "==", selectedProduct.id)
+                                      .where("is_used", "==", false)
+                                      .limit(1);
                     
-                    // التعديل هنا:
+                    const v = await codesRef.get();
+                    if(v.empty) throw "⚠️ نعتذر! هذا المنتج نفذ حالياً.";
+                    
+                    const codeDoc = v.docs[0];
+                    transaction.update(userRef, { coins: userData.coins - selectedProduct.price });
+                    transaction.update(codeDoc.ref, { 
+                        is_used: true, 
+                        buyer_id: auth.currentUser.uid,
+                        buy_date: firebase.firestore.FieldValue.serverTimestamp() 
+                    });
+                    
                     document.getElementById('statusMsg').innerText = "تم شراء الكود بنجاح:";
-                    document.getElementById('resultPin').innerText = code.data().pin_code;
-                    document.getElementById('resultPin').style.color = "var(--neon)"; // لون النيون للأكواد
-                    document.getElementById('copyBtn').style.display = 'block'; // إظهار زر النسخ
+                    document.getElementById('resultPin').innerText = codeDoc.data().pin_code;
+                    document.getElementById('resultPin').style.color = "var(--neon)";
+                    document.getElementById('copyBtn').style.display = 'block';
                 }
                 
                 document.getElementById('step-1').style.display = 'none';
                 document.getElementById('step-2').style.display = 'block';
             });
 
-        } catch (e) { showToast(e); }
+        } catch (e) { 
+            console.error(e);
+            showToast(typeof e === 'string' ? e : "❌ عذراً! الباسورد غير صحيح"); 
+        }
     }
 
     function filterCat(cat, btn) {
@@ -235,16 +259,21 @@
         btn.classList.add('active');
         loadStore();
     }
+
     function copyCode() {
-        navigator.clipboard.writeText(document.getElementById('resultPin').innerText);
-        showToast("✅ تم النسخ");
+        const text = document.getElementById('resultPin').innerText;
+        navigator.clipboard.writeText(text);
+        showToast("✅ تم نسخ الكود بنجاح");
     }
+
     function closeModal() { document.getElementById('buyModal').style.display = 'none'; }
+
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg; t.style.display = 'block';
         setTimeout(() => t.style.display = 'none', 3000);
     }
 </script>
+
 </body>
 </html>
