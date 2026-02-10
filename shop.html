@@ -216,10 +216,7 @@
         document.getElementById('confirmPass').value = ""; // تنظيف الحقل
     }
 // حاسبة السعر
-function calcPrice(coins) {
-    const price = (coins * 0.333).toFixed(2); // الـ 3 بجنيه تقريباً
-    document.getElementById('priceResult').innerText = `السعر المطلوب: ${price} جنيه مصري`;
-}
+
 
 function openDepositModal() {
     const amount = document.getElementById('buyAmount').value;
