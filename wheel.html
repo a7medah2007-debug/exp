@@ -200,46 +200,70 @@
         });
 
         // 5. Spin Logic
-        async function handleSpin() {
+                async function handleSpin() {
             if (isSpinning || !auth.currentUser) return;
 
-            const isFree = userData.firstSpinFree !== false;
-            if (!isFree && !isFreeRetry && userData.balance < 15) return alert("رصيد نقاطك غير كافٍ!");
+            const btn = document.getElementById('btnSpin');
+            btn.disabled = true;
+            btn.innerText = "جاري التحقق..."; // رسالة طمأنينة للمستخدم
 
-            isSpinning = true;
-            document.getElementById('btnSpin').disabled = true;
+            try {
+                // 1. جلب البيانات الطازجة من السيرفر مباشرة
+                const userDoc = await db.collection("users").doc(auth.currentUser.uid).get();
+                if (!userDoc.exists) {
+                    alert("خطأ: لم يتم العثور على حسابك.");
+                    btn.disabled = false;
+                    btn.innerText = "لف العجلة!";
+                    return;
+                }
 
-            // تحديث قاعدة البيانات
-            if (!isFree && !isFreeRetry) {
-                await db.collection("users").doc(auth.currentUser.uid).update({
-                    balance: firebase.firestore.FieldValue.increment(-15)
-                });
-            } else if (isFree) {
-                await db.collection("users").doc(auth.currentUser.uid).update({ firstSpinFree: false });
+                const data = userDoc.data();
+                const isFree = data.firstSpinFree !== false; // التحقق من السيرفر وليس المتصفح
+
+                // 2. فحص الشروط بناءً على بيانات السيرفر
+                if (!isFree && !isFreeRetry && (data.balance || 0) < 15) {
+                    alert("رصيد نقاطك غير كافٍ!");
+                    btn.disabled = false;
+                    btn.innerText = "لف العجلة!";
+                    return;
+                }
+
+                // 3. الآن نبدأ العملية فعلياً
+                isSpinning = true;
+
+                // تحديث قاعدة البيانات فوراً (خصم النقاط أو استهلاك اللفة المجانية)
+                if (isFree) {
+                    await db.collection("users").doc(auth.currentUser.uid).update({ firstSpinFree: false });
+                } else if (!isFreeRetry) {
+                    await db.collection("users").doc(auth.currentUser.uid).update({
+                        balance: firebase.firestore.FieldValue.increment(-15)
+                    });
+                }
+
+                // 4. اختيار الفائز (الاحتمالات)
+                const winnerIdx = getWeightedWinner();
+                
+                // حسابات التوقف
+                const sectorDeg = 360 / sectorCount;
+                const targetPos = 270 - (winnerIdx * sectorDeg) - (sectorDeg / 2);
+                const extraSpins = 360 * 10; 
+                const finalRotation = currentRotation + extraSpins + ((targetPos - (currentRotation % 360) + 360) % 360);
+                
+                currentRotation = finalRotation;
+                canvas.style.transform = `rotate(${currentRotation}deg)`;
+                btn.innerText = "حظ سعيد!";
+
+                // إعادة تعيين محاولة "إعادة اللف"
+                isFreeRetry = false;
+
+                setTimeout(() => finalize(winnerIdx), 5200);
+
+            } catch (error) {
+                console.error("Firebase Error:", error);
+                alert("حدث خطأ في الاتصال، حاول مرة أخرى.");
+                btn.disabled = false;
+                btn.innerText = "لف العجلة!";
             }
-
-            // اختيار الفائز (الاحتمالات)
-            const winnerIdx = getWeightedWinner();
-            
-            /* الحساب الرياضي الدقيق للتوقف:
-               1. Canvas يبدأ الرسم من الزاوية 0 (الساعة 3).
-               2. المؤشر الثابت في الأعلى (الساعة 12) يقابل الزاوية 270 درجة.
-               3. لجعل القطاع WinnerIdx يتوقف عند 270، نستخدم المعادلة التالية:
-            */
-            const sectorDeg = 360 / sectorCount;
-            const targetPos = 270 - (winnerIdx * sectorDeg) - (sectorDeg / 2);
-            const extraSpins = 360 * 10; // 10 لفات كاملة
-            
-            // نزيد الدوران الحالي لضمان استمرار الدوران للأمام دائماً
-            const finalRotation = currentRotation + extraSpins + ((targetPos - (currentRotation % 360) + 360) % 360);
-            
-            currentRotation = finalRotation;
-            canvas.style.transform = `rotate(${currentRotation}deg)`;
-
-            // إعادة تعيين محاولة "إعادة اللف"
-            isFreeRetry = false;
-
-            setTimeout(() => finalize(winnerIdx), 5200);
         }
 
         function getWeightedWinner() {
