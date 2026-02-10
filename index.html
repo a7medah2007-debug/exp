@@ -330,7 +330,7 @@
             <div class="btn-card" onclick="handleGift()">
                 <i class="fas fa-gift"></i>
                 <b>Daily Gift</b>
-                <span id="gift-status">Check In</span>
+                <span id="gift-status">complete tasks</span>
             </div>
         </div>
 
@@ -452,9 +452,11 @@
             userCache = doc.data();
             renderUI(userCache);
             
-            const refLink = window.location.origin + "/login.html?ref=" + user.uid;
+                        // تأكد من أن اسم ملف التسجيل هو auth.html
+            const refLink = window.location.origin + "/auth.html?ref=" + user.uid;
             const refInput = document.getElementById('ref-link-input');
             if(refInput) refInput.value = refLink;
+
         });
 
         // --- نظام مراقبة التنبيهات الذكي ---
@@ -482,15 +484,22 @@
           });
     });
 
-    function renderUI(d) {
+        function renderUI(d) {
         if(document.getElementById('u-name')) document.getElementById('u-name').innerText = d.name || "Unknown";
         if(document.getElementById('u-initial')) document.getElementById('u-initial').innerText = (d.name || "E")[0].toUpperCase();
         if(document.getElementById('u-balance')) document.getElementById('u-balance').innerText = (d.balance || 0).toFixed(2);
         if(document.getElementById('u-coins')) document.getElementById('u-coins').innerText = d.coins || 0;
-        if(document.getElementById('u-ads')) document.getElementById('u-ads').innerText = `${d.videosWatchedToday || 0} / 15`;
+
+        // --- تعديل العداد ليظهر 0 في اليوم الجديد ---
+        const today = new Date().toLocaleDateString();
+        const lastDate = d.lastAdDate || "";
+        let displayCount = d.videosWatchedToday || 0;
+        if (today !== lastDate) displayCount = 0; 
+
+        if(document.getElementById('u-ads')) document.getElementById('u-ads').innerText = `${displayCount} / 15`;
         
-        const xp = d.balance % 1000;
-        const lvl = Math.floor(d.balance / 1000) + 1;
+        const xp = (d.balance * 10) % 1000; // مثال لحساب الـ XP بناءً على الرصيد
+        const lvl = Math.floor((d.balance * 10) / 1000) + 1;
         if(document.getElementById('u-level')) document.getElementById('u-level').innerText = lvl;
         if(document.getElementById('u-xp')) document.getElementById('u-xp').innerText = `${xp.toFixed(0)} / 1000 XP`;
         if(document.getElementById('u-progress')) document.getElementById('u-progress').style.width = (xp / 10) + "%";
@@ -502,8 +511,9 @@
 
         const rankLabels = ["Citizen", "Warrior", "Elite", "Legend", "Immortal"];
         const rIdx = Math.min(Math.floor(lvl / 2), 4);
-        if(document.getElementById('u-rank')) document.getElementById('u-rank').innerHTML = `<i class=\"fas fa-crown\"></i> Rank: ${rankLabels[rIdx]}`;
+        if(document.getElementById('u-rank')) document.getElementById('u-rank').innerHTML = `<i class="fas fa-crown"></i> Rank: ${rankLabels[rIdx]}`;
     }
+
 
     async function openInbox() {
         if (!auth.currentUser) return;
@@ -548,16 +558,30 @@
         notify("✅ تم نسخ رابط الإحالة الملوكي!");
     }
 
-    async function handleGift() {
-        if(userCache.videosWatchedToday < 15) { notify("❌ أكمل الـ 15 فيديو أولاً!"); return; }
-        const today = new Date().toDateString();
-        if(userCache.lastGiftDate === today) { notify("⏳ تم استلام هدية اليوم بالفعل!"); return; }
+        async function handleGift() {
+        const today = new Date().toLocaleDateString(); // توحيد صيغة التاريخ
+        
+        // جلب أحدث بيانات للتأكد
+        const doc = await db.collection("users").doc(auth.currentUser.uid).get();
+        const d = doc.data();
+
+        if(d.videosWatchedToday < 15 && d.lastAdDate === today) { 
+            notify("❌ أكمل الـ 15 فيديو أولاً!"); 
+            return; 
+        }
+        
+        if(d.lastGiftDate === today) { 
+            notify("⏳ تم استلام هدية اليوم بالفعل!"); 
+            return; 
+        }
+
         await db.collection("users").doc(auth.currentUser.uid).update({
-            coins: firebase.firestore.FieldValue.increment(1),
+            coins: firebase.firestore.FieldValue.increment(5), // زودنا المكافأة لـ 5 عملات
             lastGiftDate: today
         });
-        notify("🎁 مبروك! حصلت على عملة ملكية");
+        notify("🎁 مبروك! حصلت على 5 عملات ");
     }
+
 
     async function openLeaders() {
         document.getElementById('modal-leaders').style.display = 'flex';
