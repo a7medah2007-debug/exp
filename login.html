@@ -190,37 +190,25 @@
     }
 
     // --- وظيفة منح مكافأة الإحالة المطورة ---
-    async function checkAndGiveReward() {
+        async function checkAndGiveReward(newUserUID) {
         const referrerId = localStorage.getItem('referrerId');
-        if (referrerId) {
+        // التأكد من وجود كود إحالة وأن الشخص لا يدعو نفسه
+        if (referrerId && referrerId !== newUserUID) {
             try {
-                // جلب قيمة المكافأة من الإعدادات التي حددتها في لوحة الإدارة
-                const settings = await db.collection("settings").doc("referral").get();
-                let rewardAmount = 5; // القيمة الافتراضية إذا لم تجد إعدادات
-                if(settings.exists && settings.data().reward) {
-                    rewardAmount = parseFloat(settings.data().reward);
-                }
-
-                // إضافة العملات للشخص الذي قام بالدعوة
-                await db.collection("users").doc(referrerId).update({
-                    coins: firebase.firestore.FieldValue.increment(rewardAmount)
+                // بدلاً من دفع العملات الآن، سنقوم بربط الحساب فقط
+                await db.collection("users").doc(newUserUID).update({
+                    referredBy: referrerId,
+                    referralPaid: false // علامة تعني أن المكافأة لم تُدفع بعد
                 });
                 
-                // إضافة إشعار للشخص صاحب الدعوة (اختياري)
-                await db.collection("users").doc(referrerId).collection("notifications").add({
-                    title: "🎁 مكافأة إحالة",
-                    message: `لقد حصلت على ${rewardAmount} عملة لتسجيل صديق جديد عن طريقك!`,
-                    time: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                });
-
-                localStorage.removeItem('referrerId'); // مسح الكود لعدم التكرار
-                console.log("Success: Referral reward granted.");
+                localStorage.removeItem('referrerId'); // مسح الكود من المتصفح
+                console.log("تم ربط الإحالة بنجاح، بانتظار نشاط المستخدم للدفع.");
             } catch (e) {
                 console.error("Referral Error:", e);
             }
         }
     }
+
 
     // --- إنشاء حساب جديد (يدوي) ---
     async function signup() {
@@ -255,7 +243,8 @@
             await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
             
             // ✅ تشغيل نظام الإحالة هنا للتسجيل اليدوي
-            await checkAndGiveReward();
+            await checkAndGiveReward(res.user.uid);
+            
 
             window.location.href = "index.html";
         } catch(e) { showStatus("❌ " + e.message); }
@@ -301,7 +290,8 @@
                 await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
                 
                 // ✅ تشغيل نظام الإحالة هنا لحسابات جوجل الجديدة
-                await checkAndGiveReward();
+                await checkAndGiveReward(user.uid);
+                
             }
             
             window.location.href = "index.html";
