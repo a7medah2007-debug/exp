@@ -119,13 +119,12 @@
             <input type="text" id="s-name" placeholder="الاسم الكامل">
             <input type="email" id="s-email" placeholder="البريد الإلكتروني">
             <input type="password" id="s-pass" placeholder="كلمة المرور">
-            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(109, 40, 217, 0.1);">
-    <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--royal-cyan);">
-    <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; cursor: pointer;">
-        لقد قرأت وأوافق على <a href="privacy.html#cheat-policy" target="_blank" style="color: var(--royal-cyan); text-decoration: none; font-weight: bold; border-bottom: 1px solid var(--royal-cyan);">سياسات الاستخدام</a>، وأدرك أن أي تلاعب أو غش سيؤدي لحظر حسابي نهائياً.
-    </label>
-</div>
-
+            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border);">
+                <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--neon);">
+                <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; cursor: pointer;">
+                    لقد قرأت وأوافق على <a href="privacy.html#cheat-policy" target="_blank" style="color: var(--neon); text-decoration: none; font-weight: bold; border-bottom: 1px solid var(--neon);">سياسات الاستخدام</a>، وأدرك أن أي تلاعب أو غش سيؤدي لحظر حسابي نهائياً.
+                </label>
+            </div>
             <button class="btn-main" onclick="signup()">انشاء حساب</button>
         </div>
 
@@ -156,7 +155,6 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // التقاط كود الإحالة وحفظه في localStorage (أضمن من sessionStorage ليبقى حتى لو أغلق المتصفح)
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
     if (refCode) {
@@ -189,24 +187,20 @@
         if(m) { m.style.display = 'block'; m.innerText = text; }
     }
 
-    // --- وظيفة منح مكافأة الإحالة المطورة ---
     async function checkAndGiveReward() {
         const referrerId = localStorage.getItem('referrerId');
         if (referrerId) {
             try {
-                // جلب قيمة المكافأة من الإعدادات التي حددتها في لوحة الإدارة
                 const settings = await db.collection("settings").doc("referral").get();
-                let rewardAmount = 5; // القيمة الافتراضية إذا لم تجد إعدادات
+                let rewardAmount = 5; 
                 if(settings.exists && settings.data().reward) {
                     rewardAmount = parseFloat(settings.data().reward);
                 }
 
-                // إضافة العملات للشخص الذي قام بالدعوة
                 await db.collection("users").doc(referrerId).update({
                     coins: firebase.firestore.FieldValue.increment(rewardAmount)
                 });
                 
-                // إضافة إشعار للشخص صاحب الدعوة (اختياري)
                 await db.collection("users").doc(referrerId).collection("notifications").add({
                     title: "🎁 مكافأة إحالة",
                     message: `لقد حصلت على ${rewardAmount} عملة لتسجيل صديق جديد عن طريقك!`,
@@ -214,15 +208,13 @@
                     read: false
                 });
 
-                localStorage.removeItem('referrerId'); // مسح الكود لعدم التكرار
-                console.log("Success: Referral reward granted.");
+                localStorage.removeItem('referrerId');
             } catch (e) {
                 console.error("Referral Error:", e);
             }
         }
     }
 
-    // --- إنشاء حساب جديد (يدوي) ---
     async function signup() {
         const name = document.getElementById('s-name').value.trim();
         const email = document.getElementById('s-email').value.trim();
@@ -240,7 +232,6 @@
 
             const res = await auth.createUserWithEmailAndPassword(email, pass);
             
-            // إنشاء ملف المستخدم الجديد
             await db.collection("users").doc(res.user.uid).set({
                 name: name, 
                 email: email, 
@@ -251,23 +242,18 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             
-            // ربط الجهاز بالحساب
             await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
-            
-            // ✅ تشغيل نظام الإحالة هنا للتسجيل اليدوي
             await checkAndGiveReward();
-
             window.location.href = "index.html";
         } catch(e) { 
-    if (e.code === "auth/email-already-in-use") {
-        showStatus("❌ هذا البريد مسجل بالفعل، جرب تسجيل الدخول بدلاً من إنشاء حساب جديد.");
-    } else {
-        showStatus("❌ " + e.message); 
+            if (e.code === "auth/email-already-in-use") {
+                showStatus("❌ هذا البريد مسجل بالفعل، جرب تسجيل الدخول بدلاً من إنشاء حساب جديد.");
+            } else {
+                showStatus("❌ " + e.message); 
+            }
+        }
     }
-}
 
-
-    // --- تسجيل الدخول ---
     async function login() {
         const email = document.getElementById('l-email').value.trim();
         const pass = document.getElementById('l-pass').value;
@@ -279,7 +265,6 @@
         } catch(e) { showStatus("❌ خطأ في البريد أو كلمة المرور"); }
     }
 
-    // --- تسجيل جوجل ---
     async function googleAuth() {
         const provider = new firebase.auth.GoogleAuthProvider();
         try {
@@ -305,16 +290,11 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
-                
-                // ✅ تشغيل نظام الإحالة هنا لحسابات جوجل الجديدة
                 await checkAndGiveReward();
             }
-            
             window.location.href = "index.html";
         } catch(e) { showStatus("❌ " + e.message); }
     }
 </script>
-
-
 </body>
 </html>
