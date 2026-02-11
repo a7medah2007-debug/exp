@@ -241,9 +241,14 @@ async function submitDeposit() {
     const amount = document.getElementById('buyAmount').value;
     const phone = document.getElementById('senderPhone').value;
     const time = document.getElementById('transferTime').value;
-    const finalPrice = Math.round(amount * 0.3333); // حساب السعر النهائي المقرب للإرسال
+    const finalPrice = Math.round(amount * 0.3333); 
 
-    if(!amount || !phone || !time) {
+    // الشرط الجديد: التأكد من أن الكمية لا تقل عن 15
+    if(!amount || amount < 15) {
+        return showToast("⚠️ أقل كمية شراء هي 15 عملة!");
+    }
+
+    if(!phone || !time) {
         return showToast("⚠️ أكمل البيانات المطلوبة أولاً!");
     }
 
@@ -254,7 +259,7 @@ async function submitDeposit() {
             user_id: auth.currentUser.uid,
             user_email: auth.currentUser.email,
             coins_requested: parseInt(amount),
-            price_to_pay: finalPrice, // سيتم تخزينه كرقم صحيح (مثلاً 10 بدل 9.99)
+            price_to_pay: finalPrice,
             sender_phone: phone,
             transfer_time: time,
             status: "pending",
@@ -267,6 +272,7 @@ async function submitDeposit() {
         showToast("❌ حدث خطأ.. حاول مرة أخرى.");
     }
 }
+
 
 
     
