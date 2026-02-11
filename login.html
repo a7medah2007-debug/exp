@@ -258,8 +258,14 @@
             await checkAndGiveReward();
 
             window.location.href = "index.html";
-        } catch(e) { showStatus("❌ " + e.message); }
+        } catch(e) { 
+    if (e.code === "auth/email-already-in-use") {
+        showStatus("❌ هذا البريد مسجل بالفعل، جرب تسجيل الدخول بدلاً من إنشاء حساب جديد.");
+    } else {
+        showStatus("❌ " + e.message); 
     }
+}
+
 
     // --- تسجيل الدخول ---
     async function login() {
