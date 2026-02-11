@@ -184,29 +184,32 @@ function displayRandomAd() {
     const slot = document.getElementById('ad-slot');
     const randomAdCode = AD_CODES[Math.floor(Math.random() * AD_CODES.length)];
     
-    // تنظيف المنطقة
-    slot.innerHTML = ""; 
+    // 1. تنظيف المكان وتجهيزه بحجم مناسب للفيديو
+    slot.innerHTML = '<div id="video-player-container" style="width:100%; height:250px;"></div>'; 
+    const container = document.getElementById('video-player-container');
+
+    // 2. إنشاء عنصر السكربت
+    const newScript = document.createElement('script');
     
-    // تحويل الكود النصي إلى عناصر DOM وحقن السكربتات يدوياً ليقبلها المتصفح
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = randomAdCode;
-    
-    const scripts = tempDiv.getElementsByTagName('script');
-    for (let oldScript of scripts) {
-        const newScript = document.createElement('script');
-        
-        // نسخ الخصائص (مثل src أو data-cfasync)
-        Array.from(oldScript.attributes).forEach(attr => {
-            newScript.setAttribute(attr.name, attr.value);
-        });
-        
-        // نسخ الكود البرمجي نفسه
-        newScript.textContent = oldScript.textContent;
-        
-        // حقن السكربت في الصفحة لتفعيله فوراً
-        slot.appendChild(newScript);
+    // 3. استخراج الـ SRC إذا كان الكود عبارة عن رابط سكربت فقط
+    // أو حقن الكود بالكامل إذا كان كوداً مركباً
+    if (randomAdCode.includes('src=')) {
+        const srcMatch = randomAdCode.match(/src=['"]([^'"]+)['"]/);
+        if (srcMatch) {
+            newScript.src = srcMatch[1];
+            // إضافة خصائص الأمان التي تطلبها شركات الإعلانات
+            newScript.async = true;
+            newScript.setAttribute('data-cfasync', 'false');
+        }
+    } else {
+        // إذا كان الكود داخلي (Inline)
+        newScript.textContent = randomAdCode.replace(/<\/?script[^>]*>/g, '');
     }
+
+    // 4. الحقن داخل الحاوية مباشرة
+    container.appendChild(newScript);
 }
+
 
 
 // 3. مراقبة مغادرة الصفحة لتصفير العداد
