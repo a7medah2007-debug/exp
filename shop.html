@@ -54,6 +54,56 @@
         .code-text { font-family: 'Courier New', monospace; font-size: 1.6rem; color: var(--neon); letter-spacing: 2px; font-weight: 900; }
 
         #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 14px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 2000; }
+  
+    :root {
+    --neon: #00f2ff;
+    --purple: #7000ff;
+    --glass: rgba(15, 23, 42, 0.85);
+    --border: rgba(0, 242, 255, 0.2);
+}
+
+#support-btn {
+    position: fixed; bottom: 15px; left: 15px;
+    width: 45px; height: 45px;
+    background: rgba(0, 242, 255, 0.1);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 9999; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+    border: 1.5px solid rgba(0, 242, 255, 0.5);
+    backdrop-filter: blur(8px); overflow: hidden;
+}
+
+#support-btn:hover { transform: translateY(-5px) scale(1.08); background: rgba(0, 242, 255, 0.2); }
+
+#robot-icon { width: 70%; height: 70%; object-fit: contain; filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.3)); }
+
+#chat-window {
+    position: fixed; bottom: 105px; left: 25px;
+    width: 340px; height: 500px;
+    background: #0f172a; border: 1px solid var(--border);
+    border-radius: 30px; display: none; flex-direction: column;
+    overflow: hidden; z-index: 9998; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    backdrop-filter: blur(20px); animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+
+.chat-header { background: var(--glass); padding: 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.chat-header img { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--neon); }
+#chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 0.85rem; }
+.msg.sent { align-self: flex-end; background: linear-gradient(45deg, var(--purple), #5000b8); color: white; border-bottom-right-radius: 4px; }
+.msg.received { align-self: flex-start; background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+.chat-input-area { padding: 18px; background: var(--glass); display: flex; gap: 10px; border-top: 1px solid var(--border); }
+.chat-input-area input { flex: 1; background: #020617; border: 1px solid var(--border); padding: 12px 15px; border-radius: 15px; color: white; outline: none; }
+.chat-input-area button { background: var(--neon); border: none; width: 45px; height: 45px; border-radius: 15px; cursor: pointer; }
+
+#support-btn::after {
+    content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%;
+    border: 1px solid var(--neon); animation: pulse-neon 2.5s infinite; pointer-events: none;
+}
+@keyframes pulse-neon { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
+
     </style>
 </head>
 <body>
@@ -382,7 +432,89 @@ async function submitDeposit() {
         t.innerText = msg; t.style.display = 'block';
         setTimeout(() => t.style.display = 'none', 3000);
     }
-</script>
+    let chatVisible = false;
 
+function toggleChat() {
+    chatVisible = !chatVisible;
+    const win = document.getElementById('chat-window');
+    win.style.display = chatVisible ? 'flex' : 'none';
+    if(chatVisible) {
+        const container = document.getElementById('chat-messages');
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if(!msg || !firebase.auth().currentUser) return;
+
+    await firebase.firestore().collection("chats").add({
+        userId: firebase.auth().currentUser.uid,
+        message: msg,
+        sender: "user",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    input.value = "";
+}
+
+function loadMessages() {
+    const user = firebase.auth().currentUser;
+    if(!user) return;
+
+    firebase.firestore().collection("chats")
+        .where("userId", "==", user.uid)
+        .orderBy("timestamp", "asc")
+        .onSnapshot(snap => {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = "";
+            snap.forEach(doc => {
+                const d = doc.data();
+                const type = d.sender === "user" ? "sent" : "received";
+                container.innerHTML += `<div class="msg ${type}">${d.message}</div>`;
+            });
+            container.scrollTop = container.scrollHeight;
+        });
+}
+
+async function clearChat() {
+    if(!confirm("حذف المحادثة؟")) return;
+    const user = firebase.auth().currentUser;
+    const snap = await firebase.firestore().collection("chats").where("userId", "==", user.uid).get();
+    const batch = firebase.firestore().batch();
+    snap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+}
+
+// تشغيل جلب الرسائل عند التأكد من تسجيل الدخول
+firebase.auth().onAuthStateChanged(user => {
+    if (user) loadMessages();
+});
+</script>
+<div id="support-btn" onclick="toggleChat()">
+    <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png" alt="Support" id="robot-icon">
+    <span class="notification-badge" id="chatBadge" style="display:none;">!</span>
+</div>
+
+<div id="chat-window">
+    <div class="chat-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png">
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 800; color: white;">الدعم الفني</h4>
+                <p style="font-size: 0.65rem; color: #00f2ff;"><i class="fas fa-circle" style="font-size: 5px;"></i> متصل الآن</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; color: #94a3b8;">
+            <i class="fas fa-trash-alt" onclick="clearChat()" style="cursor: pointer;"></i>
+            <i class="fas fa-times" onclick="toggleChat()" style="cursor: pointer;"></i>
+        </div>
+    </div>
+    <div id="chat-messages"></div>
+    <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="اكتب سؤالك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
 </body>
 </html>
