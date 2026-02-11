@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXP Vault | خزنة المشتريات</title>
+    <title>ELITE Vault | الخزنة الملكية</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -15,58 +15,233 @@
             --neon: #00f2ff;
             --purple: #7000ff;
             --bg: #020617;
-            --glass: rgba(15, 23, 42, 0.8);
+            --glass: rgba(15, 23, 42, 0.85);
             --border: rgba(0, 242, 255, 0.2);
             --gold: #f59e0b;
+            --success: #10b981;
+            --pending: #f59e0b;
+            --error: #ef4444;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg); color: white; min-height: 100vh; padding-bottom: 50px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; }
+        
+        body { 
+            background: radial-gradient(circle at top, #0f172a, #020617); 
+            color: white; 
+            min-height: 100vh; 
+            padding-bottom: 80px;
+            overflow-x: hidden;
+        }
 
-        .container { width: 95%; max-width: 500px; margin: 0 auto; padding: 20px; }
+        .container { width: 95%; max-width: 500px; margin: 0 auto; padding: 25px 15px; }
 
         header { text-align: center; margin-bottom: 30px; }
-        header h1 { font-size: 2rem; background: linear-gradient(to left, var(--neon), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 1px; }
+        header h1 { 
+            font-size: 2.2rem; 
+            background: linear-gradient(90deg, var(--neon), var(--purple)); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            font-weight: 900; 
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.3));
+        }
         
-        .vault-header-card {
-            background: linear-gradient(135deg, rgba(112, 0, 255, 0.1), rgba(0, 242, 255, 0.1));
-            border: 1px solid var(--border); padding: 20px; border-radius: 25px;
-            text-align: center; margin-bottom: 25px; backdrop-filter: blur(10px);
+        /* تابات التنقل الاحترافية */
+        .vault-tabs { 
+            display: flex; 
+            background: var(--glass); 
+            border-radius: 20px; 
+            padding: 6px; 
+            margin-bottom: 30px; 
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
-        .vault-header-card i { font-size: 2.5rem; color: var(--neon); margin-bottom: 10px; text-shadow: 0 0 15px var(--neon); }
-
-        /* ستايل المشتريات */
-        .order-card {
-            background: var(--glass); border: 1px solid var(--border);
-            border-radius: 20px; padding: 18px; margin-bottom: 15px;
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 10px; transition: 0.3s; animation: fadeInUp 0.5s ease forwards;
+        .v-tab { 
+            flex: 1; 
+            padding: 14px; 
+            text-align: center; 
+            cursor: pointer; 
+            border-radius: 15px; 
+            font-size: 0.9rem; 
+            font-weight: 800; 
+            color: #94a3b8; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
-        .order-main { display: flex; align-items: center; gap: 15px; }
-        .icon-box { width: 45px; height: 45px; background: rgba(0, 242, 255, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--neon); font-size: 1.2rem; border: 1px solid var(--border); }
-
-        .info h3 { font-size: 0.9rem; color: #f1f5f9; margin-bottom: 4px; }
-        .info p { font-size: 0.7rem; color: #64748b; }
-
-        .code-display {
-            background: #000; color: var(--neon); padding: 10px 15px; border-radius: 12px;
-            font-family: 'Courier New', monospace; font-weight: 900; border: 1px dashed var(--neon);
-            cursor: pointer; position: relative; font-size: 0.9rem; transition: 0.3s;
+        .v-tab.active { 
+            background: linear-gradient(45deg, var(--neon), var(--purple)); 
+            color: #fff; 
+            box-shadow: 0 5px 15px rgba(0, 242, 255, 0.4);
+            transform: scale(1.02);
         }
-        .code-display:hover { background: var(--neon); color: #000; box-shadow: 0 0 15px var(--neon); }
-        .code-display::after { content: 'اضغط للنسخ'; position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.5rem; color: #64748b; opacity: 0; transition: 0.3s; white-space: nowrap; }
-        .code-display:hover::after { opacity: 1; }
 
-        .empty-state { text-align: center; padding: 60px 20px; }
-        .empty-state i { font-size: 4rem; color: #1e293b; margin-bottom: 20px; }
-        .empty-state p { color: #64748b; font-weight: 600; }
+        /* الكروت المطورة */
+        .item-card {
+            background: var(--glass); 
+            border: 1px solid var(--border);
+            border-radius: 24px; 
+            padding: 20px; 
+            margin-bottom: 18px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
+        }
+        .item-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--neon);
+        }
 
-        .back-home { display: block; width: fit-content; margin: 30px auto; color: var(--neon); text-decoration: none; font-weight: 800; font-size: 0.9rem; transition: 0.3s; }
-        .back-home:hover { opacity: 0.7; transform: scale(1.05); }
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .product-info h3 { font-size: 1rem; color: #fff; font-weight: 700; }
+        .product-info p { font-size: 0.75rem; color: #64748b; margin-top: 5px; }
 
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 12px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 1000; }
+        .code-box {
+            background: #000; 
+            color: var(--neon); 
+            padding: 15px; 
+            border-radius: 16px;
+            font-family: 'Courier New', monospace; 
+            text-align: center; 
+            border: 1px dashed var(--neon);
+            cursor: pointer; 
+            font-weight: 900; 
+            font-size: 1.2rem; 
+            margin-top: 12px;
+            transition: 0.3s;
+        }
+        .code-box:active { transform: scale(0.97); background: rgba(0, 242, 255, 0.1); }
+
+        .status { padding: 6px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 900; }
+        .status.pending { background: rgba(245, 158, 11, 0.15); color: var(--pending); border: 1px solid var(--pending); }
+        .status.completed { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .status.rejected { background: rgba(239, 68, 68, 0.15); color: var(--error); border: 1px solid var(--error); }
+
+        .request-details { 
+            font-size: 0.85rem; 
+            background: rgba(0,0,0,0.3); 
+            padding: 12px; 
+            border-radius: 12px; 
+            margin-top: 12px; 
+            color: #cbd5e1; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn { 
+            display: block; 
+            text-align: center; 
+            margin-top: 40px; 
+            color: #94a3b8; 
+            text-decoration: none; 
+            font-weight: 700; 
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .back-btn:hover { color: var(--neon); }
+
+        #toast { 
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+            background: var(--neon); color: #000; padding: 14px 30px; 
+            border-radius: 50px; font-weight: 900; display: none; z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0, 242, 255, 0.5);
+        }
+        
+        /* زر الدعم الاحترافي */
+/* زر الدعم النيون الهادئ - النسخة الاحترافية */
+#support-btn {
+    position: fixed;
+    bottom: 25px;
+    left: 25px;
+    width: 55px;
+    height: 55px;
+    /* خلفية نيون سماوية هادئة مع شفافية */
+    background: rgba(0, 242, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 9999;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* توهج نيون ناعم جداً */
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.15), 
+                inset 0 0 10px rgba(0, 242, 255, 0.1);
+    border: 1.5px solid rgba(0, 242, 255, 0.5); /* إطار نيون خفيف */
+    overflow: hidden;
+    backdrop-filter: blur(8px); /* تأثير زجاجي */
+}
+
+#support-btn:hover {
+    transform: translateY(-5px) scale(1.08);
+    background: rgba(0, 242, 255, 0.2);
+    box-shadow: 0 0 30px rgba(0, 242, 255, 0.4);
+    border-color: var(--neon);
+}
+
+#robot-icon {
+    width: 70%; /* ترك مساحة حول الصورة لتبدو بداخل الإطار */
+    height: 70%;
+    object-fit: contain;
+    /* فلتر لتحسين اندماج الصورة مع لون النيون */
+    filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.3)) brightness(1.1);
+}
+
+/* تأثير النبض (Pulse) باللون النيون فقط */
+#support-btn::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1px solid var(--neon);
+    animation: pulse-neon 2.5s infinite;
+    pointer-events: none;
+}
+
+@keyframes pulse-neon {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+
+        /* نافذة الشات المذهلة */
+        #chat-window {
+            position: fixed; bottom: 105px; left: 25px;
+            width: 340px; height: 500px;
+            background: #0f172a; border: 1px solid var(--border);
+            border-radius: 30px; display: none; flex-direction: column;
+            overflow: hidden; z-index: 9998; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            backdrop-filter: blur(20px); animation: slideUp 0.4s ease-out;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+
+        .chat-header {
+            background: var(--glass); padding: 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chat-header img { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--neon); }
+
+        #chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 0.85rem; line-height: 1.5; }
+        .msg.sent { align-self: flex-end; background: linear-gradient(45deg, var(--purple), #5000b8); color: white; border-bottom-right-radius: 4px; }
+        .msg.received { align-self: flex-start; background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+
+        .chat-input-area { padding: 18px; background: var(--glass); display: flex; gap: 10px; border-top: 1px solid var(--border); }
+        .chat-input-area input {
+            flex: 1; background: #020617; border: 1px solid var(--border);
+            padding: 12px 15px; border-radius: 15px; color: white; outline: none; font-size: 0.85rem;
+        }
+        .chat-input-area button {
+            background: var(--neon); border: none; width: 45px; height: 45px;
+            border-radius: 15px; color: #000; cursor: pointer; transition: 0.3s;
+        }
+        .chat-input-area button:hover { background: #fff; transform: scale(1.05); }
+
+        .empty { text-align: center; padding: 60px 20px; color: #475569; }
+        .empty i { font-size: 4rem; margin-bottom: 20px; color: #1e293b; }
     </style>
 </head>
 <body>
@@ -75,24 +250,53 @@
 
     <div class="container">
         <header>
-            <h1>EXP VAULT</h1>
+            <h1>ELITE VAULT</h1>
         </header>
 
-        <div class="vault-header-card">
-            <i class="fas fa-vault"></i>
-            <h3>خزنتك الملكية</h3>
-            <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 5px;">تاريخ عملياتك وأكوادك المشتراة محفوظة هنا للأبد</p>
+        <div class="vault-tabs">
+            <div class="v-tab active" onclick="switchTab('codes', this)">
+                <i class="fas fa-ticket-alt"></i> الأكواد
+            </div>
+            <div class="v-tab" onclick="switchTab('requests', this)">
+                <i class="fas fa-tasks"></i> الطلبات
+            </div>
         </div>
 
-        <div id="listContainer">
-            <p style="text-align: center; color: #64748b;">جاري استرجاع البيانات...</p>
-        </div>
+        <div id="vaultContent">
+            </div>
 
-        <a href="index.html" class="back-home"><i class="fas fa-chevron-right"></i> عودة للرئيسية</a>
+        <a href="index.html" class="back-btn"><i class="fas fa-chevron-right"></i> العودة للمتجر الملكي</a>
+    </div>
+
+    <div id="support-btn" onclick="toggleChat()">
+        <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png" alt="Support" id="robot-icon">
+        <span class="notification-badge" id="chatBadge" style="display:none;">!</span>
+    </div>
+
+    <div id="chat-window">
+        <div class="chat-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png">
+                <div>
+                    <h4 style="font-size: 0.9rem; font-weight: 800;">الدعم الفني</h4>
+                    <p style="font-size: 0.65rem; color: var(--neon);"><i class="fas fa-circle" style="font-size: 5px;"></i> متصل الآن</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; color: #94a3b8;">
+                <i class="fas fa-trash-alt" onclick="clearChat()" style="cursor: pointer; font-size: 0.9rem;"></i>
+                <i class="fas fa-times" onclick="toggleChat()" style="cursor: pointer; font-size: 1.1rem;"></i>
+            </div>
+        </div>
+        
+        <div id="chat-messages"></div>
+
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="اكتب سؤالك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
 
 <script>
-    // --- إعدادات فايربيز ---
     const firebaseConfig = {
         apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
         authDomain: "rewardsite-9025d.firebaseapp.com",
@@ -102,81 +306,134 @@
         appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // التحقق من تسجيل الدخول
+    let currentTab = 'codes';
+
     auth.onAuthStateChanged(user => {
-        if (user) {
-            fetchUserOrders(user.uid);
-        } else {
-            window.location.href = "login.html";
-        }
+        if (user) { loadVault(); loadMessages(); } 
+        else { window.location.href = "login.html"; }
     });
 
-    async function fetchUserOrders(uid) {
-        const listContainer = document.getElementById('listContainer');
-        
+    function switchTab(tab, el) {
+        currentTab = tab;
+        document.querySelectorAll('.v-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        loadVault();
+    }
+
+    async function loadVault() {
+        const content = document.getElementById('vaultContent');
+        const user = auth.currentUser;
+        content.innerHTML = '<div class="empty"><i class="fas fa-spinner fa-spin"></i><p>جاري تحميل البيانات...</p></div>';
+
         try {
-            // جلب البيانات بفلتر واحد فقط لتجنب مشكلة الـ Index
-            const snapshot = await db.collection("valut")
-                .where("buyer_id", "==", uid)
-                .get();
-
-            if (snapshot.empty) {
-                listContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-ghost"></i>
-                        <p>لا توجد مشتريات سابقة حتى الآن!</p>
-                    </div>`;
-                return;
-            }
-
-            // ترتيب البيانات يدوياً (الأحدث أولاً)
-            let myOrders = [];
-            snapshot.forEach(doc => myOrders.push({id: doc.id, ...doc.data()}));
-            
-            myOrders.sort((a, b) => {
-                const dateA = a.purchase_date ? a.purchase_date.toMillis() : 0;
-                const dateB = b.purchase_date ? b.purchase_date.toMillis() : 0;
-                return dateB - dateA;
-            });
-
-            listContainer.innerHTML = ''; // مسح رسالة التحميل
-
-            myOrders.forEach(order => {
-                const date = order.purchase_date ? order.purchase_date.toDate().toLocaleDateString('ar-EG') : 'قديماً';
-                const time = order.purchase_date ? order.purchase_date.toDate().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'}) : '';
-
-                listContainer.innerHTML += `
-                    <div class="order-card">
-                        <div class="order-main">
-                            <div class="icon-box"><i class="fas fa-key"></i></div>
-                            <div class="info">
-                                <h3>كود شحن رقمي</h3>
-                                <p><i class="far fa-calendar-alt"></i> ${date} | ${time}</p>
+            if (currentTab === 'codes') {
+                const snap = await db.collection("codes").where("buyer_id", "==", user.uid).where("is_used", "==", true).get();
+                if (snap.empty) return showEmpty();
+                let html = '';
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.buy_date ? data.buy_date.toDate().toLocaleString('ar-EG') : 'تاريخ قديم';
+                    html += `
+                        <div class="item-card">
+                            <div class="card-top">
+                                <div class="product-info">
+                                    <h3>${data.product_name || 'كود شحن'}</h3>
+                                    <p><i class="far fa-calendar-alt"></i> ${date}</p>
+                                </div>
+                                <span class="status completed">تم التسليم</span>
                             </div>
-                        </div>
-                        <div class="code-display" onclick="copyToClipboard('${order.pin_code}')">
-                            ${order.pin_code}
-                        </div>
-                    </div>
-                `;
-            });
+                            <div class="code-box" onclick="copyText('${data.pin_code}')">${data.pin_code}</div>
+                        </div>`;
+                });
+                content.innerHTML = html;
+            } else {
+                const snap = await db.collection("orders").where("user_id", "==", user.uid).get();
+                if (snap.empty) return showEmpty();
+                let orders = [];
+                snap.forEach(doc => orders.push(doc.data()));
+                orders.sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                let html = '';
+                orders.forEach(data => {
+                    const date = data.timestamp ? data.timestamp.toDate().toLocaleString('ar-EG') : 'انتظار..';
+                    const statusClass = data.status || 'pending';
+                    const statusText = data.status === 'pending' ? 'قيد التنفيذ' : (data.status === 'completed' ? 'تم الشحن' : 'مرفوض');
+                    html += `
+                        <div class="item-card">
+                            <div class="card-top">
+                                <div class="product-info">
+                                    <h3>${data.product || 'شحن يدوي'}</h3>
+                                    <p><i class="far fa-clock"></i> ${date}</p>
+                                </div>
+                                <span class="status ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="request-details">
+                                <i class="fas fa-fingerprint" style="color:var(--neon)"></i> المعرف (ID): <b>${data.player_id}</b>
+                            </div>
+                        </div>`;
+                });
+                content.innerHTML = html;
+            }
+        } catch (e) { content.innerHTML = '<p style="text-align:center; color:red;">خطأ في الاتصال بالخادم</p>'; }
+    }
 
-        } catch (error) {
-            console.error(error);
-            listContainer.innerHTML = `<p style="text-align:center; color: #ef4444;">❌ خطأ في التحميل: ${error.message}</p>`;
+    function showEmpty() {
+        document.getElementById('vaultContent').innerHTML = '<div class="empty"><i class="fas fa-box-open"></i><p>لا يوجد بيانات لعرضها حالياً</p></div>';
+    }
+
+    function copyText(txt) {
+        navigator.clipboard.writeText(txt);
+        const t = document.getElementById('toast');
+        t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500);
+    }
+
+    // --- نظام الشات ---
+    let chatVisible = false;
+    function toggleChat() {
+        chatVisible = !chatVisible;
+        document.getElementById('chat-window').style.display = chatVisible ? 'flex' : 'none';
+        if(chatVisible) {
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
         }
     }
 
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            const toast = document.getElementById('toast');
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 2000);
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value.trim();
+        if(!msg) return;
+        await db.collection("chats").add({
+            userId: auth.currentUser.uid,
+            message: msg,
+            sender: "user",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
+        input.value = "";
+    }
+
+    function loadMessages() {
+        db.collection("chats").where("userId", "==", auth.currentUser.uid).orderBy("timestamp", "asc")
+        .onSnapshot(snap => {
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = "";
+            snap.forEach(doc => {
+                const d = doc.data();
+                const type = d.sender === "user" ? "sent" : "received";
+                container.innerHTML += `<div class="msg ${type}">${d.message}</div>`;
+            });
+            container.scrollTop = container.scrollHeight;
+        });
+    }
+
+    async function clearChat() {
+        if(!confirm("هل أنت متأكد من حذف تاريخ المحادثة؟")) return;
+        const snap = await db.collection("chats").where("userId", "==", auth.currentUser.uid).get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
     }
 </script>
 </body>
