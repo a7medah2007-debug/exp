@@ -66,30 +66,26 @@
             <div class="user-balance"><i class="fas fa-coins"></i> <span id="userCoins">0</span> <span>عملة</span></div>
         </header>
 
-    <h3 style="font-size: 1.2rem; color: var(--gold);">اشترِ عملات ذهبية الآن</h3>
-    <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">كل 3 عملات بـ 1 جنيه فقط!</p>
     
-    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
-        <input type="number" id="buyAmount" placeholder="أدخل عدد العملات (مثلاً: 30)" oninput="calcPrice(this.value)" style="width: 80%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: #020617; color: white; text-align: center;">
-        <div id="priceResult" style="font-weight: bold; color: var(--neon); font-size: 0.9rem;">السعر المطلوب: 0 جنيه</div>
-        <button class="buy-now" style="background: var(--gold); color: #000; width: 80%;" onclick="openDepositModal()">اطلب الشحن الآن</button>
-    </div>
-</div>
-
 <div class="modal" id="depositModal">
-    <div class="modal-content"> <h2 style="background: linear-gradient(to left, var(--neon), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">شحن رصيد عملات</h2>
+    <div class="modal-content"> 
+        <h2 style="background: linear-gradient(to left, var(--neon), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">شحن رصيد عملات</h2>
         
-        <div style="margin: 15px 0;">
+        <div style="margin: 20px 0; padding: 15px; border: 1px dashed var(--border); border-radius: 20px;">
+            <p style="font-size: 0.85rem; color: var(--neon); margin-bottom: 10px;">سعر خاص: كل 3 عملات بـ 1 جنيه</p>
             <input type="number" id="buyAmount" placeholder="أدخل عدد العملات" oninput="calcPrice(this.value)">
-            <div id="priceResult" style="color: var(--gold); font-weight: bold; margin-bottom: 15px; font-size: 0.9rem;">السعر المطلوب: 0 جنيه</div>
+            <div id="priceResult" style="color: var(--gold); font-weight: bold; font-size: 0.9rem;">السعر المطلوب: 0 جنيه</div>
         </div>
 
-        <p style="font-size: 0.8rem; color: #94a3b8;">حول المبلغ لـ: <b style="color:white; letter-spacing:1px;">01104452609</b></p>
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; margin-bottom: 15px;">
+            <p style="font-size: 0.8rem; color: #94a3b8;">حول المبلغ لـ (فودافون كاش):</p>
+            <b style="color:white; font-size: 1.2rem; letter-spacing:1px;">01104452609</b>
+        </div>
         
-        <input type="text" id="senderPhone" placeholder="رقم فودافون كاش المحول منه">
+        <input type="text" id="senderPhone" placeholder="رقمك اللي حولت منه">
         <input type="text" id="transferTime" placeholder="وقت التحويل (مثلاً: الآن)">
 
-        <button class="buy-now" onclick="submitDeposit()">إرسال طلب الشحن</button>
+        <button class="buy-now" onclick="submitDeposit()">تأكيد وإرسال الطلب</button>
         <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeDepositModal()">إلغاء</button>
     </div>
 </div>
@@ -98,9 +94,10 @@
         
         <div class="category-tabs">
     <button class="tab-btn active" onclick="filterCat('all', this)">الكل</button>
-    <button class="tab-btn" style="border-color: var(--gold); color: var(--gold);" onclick="openDepositModal()">
-        <i class="fas fa-plus-circle"></i> شراء عملات
-    </button>
+<button class="tab-btn" style="border-color: var(--neon); color: var(--neon);" onclick="openDepositModal()">
+    <i class="fas fa-plus-circle"></i> شراء عملات
+</button>
+
     <button class="tab-btn" onclick="filterCat('cards', this)">كروت شحن</button>
     <button class="tab-btn" onclick="filterCat('games', this)">شحن ألعاب</button>
     <button class="tab-btn" onclick="filterCat('net', this)">باقات نت</button>
