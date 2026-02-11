@@ -236,8 +236,8 @@
             await db.collection("users").doc(res.user.uid).set({
                 name: name, 
                 email: email, 
-                balance: 0, 
-                coins: 0, 
+                balance: 30, 
+                coins: 10, 
                 videosWatchedToday: 0, 
                 lastLoginDate: firebase.firestore.FieldValue.serverTimestamp(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
