@@ -119,12 +119,13 @@
             <input type="text" id="s-name" placeholder="الاسم الكامل">
             <input type="email" id="s-email" placeholder="البريد الإلكتروني">
             <input type="password" id="s-pass" placeholder="كلمة المرور">
-            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border);">
-                <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--neon);">
-                <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; cursor: pointer;">
-                    لقد قرأت وأوافق على <a href="privacy.html#cheat-policy" target="_blank" style="color: var(--neon); text-decoration: none; font-weight: bold; border-bottom: 1px solid var(--neon);">سياسات الاستخدام</a>، وأدرك أن أي تلاعب أو غش سيؤدي لحظر حسابي نهائياً.
-                </label>
-            </div>
+            <div style="display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid rgba(109, 40, 217, 0.1);">
+    <input type="checkbox" id="terms-check" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--royal-cyan);">
+    <label for="terms-check" style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4; cursor: pointer;">
+        لقد قرأت وأوافق على <a href="privacy.html#cheat-policy" target="_blank" style="color: var(--royal-cyan); text-decoration: none; font-weight: bold; border-bottom: 1px solid var(--royal-cyan);">سياسات الاستخدام</a>، وأدرك أن أي تلاعب أو غش سيؤدي لحظر حسابي نهائياً.
+    </label>
+</div>
+
             <button class="btn-main" onclick="signup()">انشاء حساب</button>
         </div>
 
@@ -151,14 +152,15 @@
         appId: "1:777911247728:web:089c8f41a1684c35d7a5b5"
     };
 
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    // التقاط كود الإحالة من الرابط وحفظه فور فتح الصفحة
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
     if (refCode) {
-        localStorage.setItem('referrerId', refCode);
+        sessionStorage.setItem('referrerId', refCode);
     }
 
     function getDeviceID() {
@@ -184,87 +186,113 @@
 
     function showStatus(text) {
         const m = document.getElementById('msg');
-        if(m) { m.style.display = 'block'; m.innerText = text; }
+        m.style.display = 'block'; m.innerText = text;
     }
 
+    // --- وظيفة منح مكافأة الإحالة (تُستدعى عند النجاح فقط) ---
     async function checkAndGiveReward() {
-        const referrerId = localStorage.getItem('referrerId');
+        const referrerId = sessionStorage.getItem('referrerId');
         if (referrerId) {
             try {
-                const settings = await db.collection("settings").doc("referral").get();
-                let rewardAmount = 5; 
-                if(settings.exists && settings.data().reward) {
-                    rewardAmount = parseFloat(settings.data().reward);
-                }
-
+                // إضافة 5 عملات للشخص صاحب الرابط
                 await db.collection("users").doc(referrerId).update({
-                    coins: firebase.firestore.FieldValue.increment(rewardAmount)
+                    coins: firebase.firestore.FieldValue.increment(5)
                 });
-                
-                await db.collection("users").doc(referrerId).collection("notifications").add({
-                    title: "🎁 مكافأة إحالة",
-                    message: `لقد حصلت على ${rewardAmount} عملة لتسجيل صديق جديد عن طريقك!`,
-                    time: firebase.firestore.FieldValue.serverTimestamp(),
-                    read: false
-                });
-
-                localStorage.removeItem('referrerId');
+                sessionStorage.removeItem('referrerId'); // مسح الكود بعد الاستخدام
+                console.log("Referral Reward Granted!");
             } catch (e) {
-                console.error("Referral Error:", e);
+                console.log("Error in referral reward:", e);
             }
         }
     }
-
+    // --- إنشاء حساب جديد مع إرسال رسالة تفعيل ---
     async function signup() {
-        const name = document.getElementById('s-name').value.trim();
-        const email = document.getElementById('s-email').value.trim();
+        const name = document.getElementById('s-name').value;
+        const email = document.getElementById('s-email').value;
         const pass = document.getElementById('s-pass').value;
         const terms = document.getElementById('terms-check').checked;
 
-        if(!terms) return showStatus("⚠️ يجب الموافقة على سياسات الاستخدام");
-        if(!name || !email || pass.length < 6) return showStatus("⚠️ بيانات ناقصة أو كلمة المرور ضعيفة");
+        if(!terms) return showStatus("يجب الموافقة على سياسات الاستخدام أولاً");
+        if(!name || !email || pass.length < 6) return showStatus("بيانات غير مكتملة أو كلمة مرور ضعيفة");
 
-        showStatus("جاري إنشاء الحساب...");
         try {
             const devID = getDeviceID();
+            // التحقق من الجهاز قبل البدء
             const devCheck = await db.collection("registered_devices").doc(devID).get();
-            if(devCheck.exists) throw new Error("عذراً، هذا الجهاز سجل حساباً من قبل!");
+            if(devCheck.exists) throw new Error("عذراً، هذا الجهاز يمتلك حساباً بالفعل!");
 
+            // 1. إنشاء الحساب في Firebase Auth
             const res = await auth.createUserWithEmailAndPassword(email, pass);
             
+            // 2. إرسال رسالة التحقق للبريد الإلكتروني
+            await res.user.sendEmailVerification();
+            
+            // 3. إنشاء ملف المستخدم (بيانات أولية)
             await db.collection("users").doc(res.user.uid).set({
                 name: name, 
                 email: email, 
                 balance: 0, 
                 coins: 0, 
+                verified: false, // لم يتم التفعيل بعد
                 videosWatchedToday: 0, 
-                lastLoginDate: firebase.firestore.FieldValue.serverTimestamp(),
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
             });
+
+            // إظهار رسالة نجاح وتنبيه للتفعيل
+            showStatus("تم إنشاء الحساب! يرجى فحص بريدك الإلكتروني لتفعيل الحساب قبل تسجيل الدخول.");
             
-            await db.collection("registered_devices").doc(devID).set({ owner: res.user.uid });
-            await checkAndGiveReward();
-            window.location.href = "index.html";
+            // تسجيل الخروج فوراً لضمان عدم الدخول قبل التفعيل
+            setTimeout(() => { auth.signOut(); }, 3000);
+
         } catch(e) { 
-            if (e.code === "auth/email-already-in-use") {
-                showStatus("❌ هذا البريد مسجل بالفعل، جرب تسجيل الدخول بدلاً من إنشاء حساب جديد.");
-            } else {
-                showStatus("❌ " + e.message); 
-            }
+            showStatus(e.message); 
         }
     }
 
+    // --- دخول مع التحقق من تفعيل الإيميل وحماية الجهاز ---
     async function login() {
-        const email = document.getElementById('l-email').value.trim();
+        const email = document.getElementById('l-email').value;
         const pass = document.getElementById('l-pass').value;
-        if(!email || !pass) return showStatus("⚠️ أدخل البيانات");
+        
+        if(!email || !pass) return showStatus("يرجى إدخال البريد وكلمة المرور");
 
         try {
-            await auth.signInWithEmailAndPassword(email, pass);
+            const res = await auth.signInWithEmailAndPassword(email, pass);
+            const user = res.user;
+
+            // 1. التحقق: هل قام المستخدم بتفعيل الإيميل؟
+            if (!user.emailVerified) {
+                showStatus("يرجى تفعيل حسابك من البريد الإلكتروني أولاً.");
+                await auth.signOut();
+                return;
+            }
+
+            // 2. التحقق من حماية الجهاز عند أول دخول ناجح بعد التفعيل
+            const devID = getDeviceID();
+            const devCheck = await db.collection("registered_devices").doc(devID).get();
+
+            if (!devCheck.exists) {
+                // إذا كان الجهاز غير مسجل، نقوم بتسجيله الآن لهذا المستخدم
+                await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
+                // منح مكافأة الإحالة فقط عند أول دخول ناجح وتفعيل
+                await checkAndGiveReward();
+                // تحديث حالة التفعيل في Firestore
+                await db.collection("users").doc(user.uid).update({ verified: true });
+            } else if (devCheck.data().owner !== user.uid) {
+                // إذا كان الجهاز مسجل لشخص آخر
+                showStatus("هذا الجهاز مرتبط بحساب آخر بالفعل!");
+                await auth.signOut();
+                return;
+            }
+
+            // الدخول بنجاح
             window.location.href = "index.html";
-        } catch(e) { showStatus("❌ خطأ في البريد أو كلمة المرور"); }
+        } catch(e) { 
+            showStatus("خطأ في بيانات الدخول أو الحساب غير موجود"); 
+        }
     }
 
+    
     async function googleAuth() {
         const provider = new firebase.auth.GoogleAuthProvider();
         try {
@@ -281,20 +309,19 @@
             const userDoc = await db.collection("users").doc(user.uid).get();
             if(!userDoc.exists) {
                 await db.collection("users").doc(user.uid).set({
-                    name: user.displayName, 
-                    email: user.email, 
-                    balance: 0, 
-                    coins: 0, 
-                    videosWatchedToday: 0, 
-                    lastLoginDate: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    name: user.displayName, email: user.email, balance: 0, coins: 0, 
+                    videosWatchedToday: 0, lastLoginDate: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 await db.collection("registered_devices").doc(devID).set({ owner: user.uid });
+                
+                // منح مكافأة الإحالة للحسابات الجديدة فقط عبر جوجل
                 await checkAndGiveReward();
             }
+            
             window.location.href = "index.html";
-        } catch(e) { showStatus("❌ " + e.message); }
+        } catch(e) { showStatus(e.message); }
     }
 </script>
+
 </body>
 </html>
