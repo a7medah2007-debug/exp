@@ -469,20 +469,23 @@ async function sendMessage() {
 function loadMessages() {
     if(!auth.currentUser) return;
     
-    // الترتيب بـ timestamp "asc" يخلي الرسائل تحت بعضها بالترتيب الزمني
     db.collection("chats")
       .where("userId", "==", auth.currentUser.uid)
       .orderBy("timestamp", "asc")
       .onSnapshot(snapshot => {
           const container = document.getElementById('chat-messages');
+          // إذا كان السناب شوت فارغاً أو لسه بيتحمل
+          if (snapshot.metadata.hasPendingWrites) return; 
+
           container.innerHTML = "";
           snapshot.forEach(doc => {
               const data = doc.data();
-              // لو المرسل user تظهر يمين، لو admin تظهر شمال (رد الإدارة)
               const type = data.sender === "user" ? "sent" : "received";
               container.innerHTML += `<div class="msg ${type}">${data.message}</div>`;
           });
-          container.scrollTop = container.scrollHeight; // النزول لآخر رسالة تلقائياً
+          container.scrollTop = container.scrollHeight;
+      }, error => {
+          console.error("خطأ في جلب الرسائل:", error);
       });
 }
 
