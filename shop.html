@@ -54,60 +54,68 @@
         .code-text { font-family: 'Courier New', monospace; font-size: 1.6rem; color: var(--neon); letter-spacing: 2px; font-weight: 900; }
 
         #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 14px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 2000; }
-  
-    :root {
-    --neon: #00f2ff;
-    --purple: #7000ff;
-    --glass: rgba(15, 23, 42, 0.85);
-    --border: rgba(0, 242, 255, 0.2);
-}
+      #support-btn {
+        position: fixed; bottom: 15px; left: 15px;
+        width: 45px; height: 45px;
+        background: rgba(0, 242, 255, 0.1);
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; z-index: 9999; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+        border: 1.5px solid rgba(0, 242, 255, 0.5);
+        backdrop-filter: blur(8px); overflow: hidden;
+    }
+    #support-btn::after {
+        content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%;
+        border: 1px solid var(--neon); animation: pulse-neon 2.5s infinite; pointer-events: none;
+    }
+    #robot-icon { width: 70%; height: 70%; object-fit: contain; }
 
-#support-btn {
-    position: fixed; bottom: 15px; left: 15px;
-    width: 45px; height: 45px;
-    background: rgba(0, 242, 255, 0.1);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 9999; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
-    border: 1.5px solid rgba(0, 242, 255, 0.5);
-    backdrop-filter: blur(8px); overflow: hidden;
-}
+    /* نافذة الدردشة (المطورة) */
+    #chat-window {
+        position: fixed; bottom: 105px; left: 25px;
+        width: 340px; height: 500px;
+        background: #0f172a; border: 1px solid var(--border);
+        border-radius: 30px; display: none; flex-direction: column; /* ترتيب العناصر عمودياً */
+        overflow: hidden; z-index: 9998; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        backdrop-filter: blur(20px); animation: slideUp 0.4s ease-out;
+    }
 
-#support-btn:hover { transform: translateY(-5px) scale(1.08); background: rgba(0, 242, 255, 0.2); }
+    .chat-header { background: var(--glass); padding: 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .chat-header img { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--neon); }
 
-#robot-icon { width: 70%; height: 70%; object-fit: contain; filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.3)); }
+    /* منطقة الرسائل - تتمدد لتشغل المساحة المتاحة */
+    #chat-messages {
+        flex: 1; 
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+        overflow-y: auto; /* يسمح بالتمرير هنا فقط */
+        scrollbar-width: thin;
+    }
 
-#chat-window {
-    position: fixed; bottom: 105px; left: 25px;
-    width: 340px; height: 500px;
-    background: #0f172a; border: 1px solid var(--border);
-    border-radius: 30px; display: none; flex-direction: column;
-    overflow: hidden; z-index: 9998; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-    backdrop-filter: blur(20px); animation: slideUp 0.4s ease-out;
-}
+    .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 0.85rem; word-wrap: break-word; }
+    .msg.sent { align-self: flex-end; background: linear-gradient(45deg, var(--purple), #5000b8); color: white; border-bottom-right-radius: 4px; }
+    .msg.received { align-self: flex-start; background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid var(--border); }
 
-@keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+    /* منطقة الإدخال - ثابتة في القاع */
+    .chat-input-area { 
+        padding: 15px; 
+        background: var(--glass); 
+        display: flex; 
+        gap: 10px; 
+        border-top: 1px solid var(--border);
+        flex-shrink: 0; /* يمنع المنطقة من الانكماش */
+    }
+    .chat-input-area input { flex: 1; background: #020617; border: 1px solid var(--border); padding: 12px 15px; border-radius: 15px; color: white; outline: none; font-size: 0.85rem; }
+    .chat-input-area button { background: var(--neon); border: none; width: 45px; height: 45px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+    .chat-input-area button:hover { box-shadow: 0 0 15px var(--neon); transform: scale(1.05); }
 
-.chat-header { background: var(--glass); padding: 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-.chat-header img { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--neon); }
-#chat-messages {
-    display: flex;
-    flex-direction: column; /* الرسائل فوق بعض */
-    gap: 10px;
-    overflow-y: auto; /* السماح بالتمرير */
-}
-.msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 0.85rem; }
-.msg.sent { align-self: flex-end; background: linear-gradient(45deg, var(--purple), #5000b8); color: white; border-bottom-right-radius: 4px; }
-.msg.received { align-self: flex-start; background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid var(--border); }
-.chat-input-area { padding: 18px; background: var(--glass); display: flex; gap: 10px; border-top: 1px solid var(--border); }
-.chat-input-area input { flex: 1; background: #020617; border: 1px solid var(--border); padding: 12px 15px; border-radius: 15px; color: white; outline: none; }
-.chat-input-area button { background: var(--neon); border: none; width: 45px; height: 45px; border-radius: 15px; cursor: pointer; }
-
-#support-btn::after {
-    content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%;
-    border: 1px solid var(--neon); animation: pulse-neon 2.5s infinite; pointer-events: none;
-}
-@keyframes pulse-neon { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
+    /* الأنيميشن */
+    @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse-neon { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
+    
+    #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 14px 30px; border-radius: 50px; font-weight: 900; display: none; z-index: 2000; }
 
     </style>
 </head>
@@ -121,8 +129,7 @@
             <div class="user-balance"><i class="fas fa-coins"></i> <span id="userCoins">0</span> <span>عملة</span></div>
         </header>
 
-    
-<div class="modal" id="depositModal">
+        <div class="modal" id="depositModal">
     <div class="modal-content"> 
         <h2 style="background: linear-gradient(to left, var(--neon), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">شحن رصيد عملات</h2>
         
@@ -137,8 +144,8 @@
             <b style="color:white; font-size: 1.2rem; letter-spacing:1px;">01104452609</b>
         </div>
         
-        <input type="text" id="senderPhone" placeholder="رقمك اللي حولت منه">
-        <input type="text" id="transferTime" placeholder="وقت التحويل (مثلاً: الساعه الخامسه)">
+        <input type="number" id="senderPhone" placeholder="رقمك اللي حولت منه">
+        <input type="datetime-local" id="transferTime" placeholder="وقت التحويل (مثلاً: الساعه الخامسه)">
 
         <button class="buy-now" onclick="submitDeposit()">تأكيد وإرسال الطلب</button>
         <button style="background:none; border:none; color:#64748b; margin-top:15px; cursor:pointer;" onclick="closeDepositModal()">إلغاء</button>
@@ -189,7 +196,6 @@
 
         </div>
     </div>
-
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyBKXxVqGiL0Ml_kEeNzchzHUMYPsFyl-jM",
@@ -207,7 +213,8 @@
     let userData = null;
     let selectedProduct = null;
     let currentCat = 'all';
-
+    let chatUnsubscribe = null;
+    
     auth.onAuthStateChanged(user => {
         if(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
@@ -217,6 +224,7 @@
                 }
             });
             loadStore();
+            loadMessages();
         } else { window.location.href = "login.html"; }
     });
 
@@ -228,8 +236,7 @@
             const snapshot = await db.collection("products").get();
             grid.innerHTML = '';
 
-            
-            
+            // 1. إضافة بطاقة "شحن شدات" اليدوية الثابتة        
 
             // 2. سحب المنتجات المضافة من الإدارة
             snapshot.forEach(doc => {
@@ -264,104 +271,24 @@
         document.getElementById('step-2').style.display = 'none';
         document.getElementById('confirmPass').value = ""; // تنظيف الحقل
     }
-// حاسبة السعر
 
-
-
-
-
-// حاسبة السعر مع التقريب لأقرب رقم صحيح
-function calcPrice(coins) {
-    if(!coins) {
-        document.getElementById('priceResult').innerText = `السعر المطلوب: 0 جنيه`;
-        return;
-    }
-    // السعر الأصلي 0.333 مضروب في العملات، ثم تقريبه لأقرب رقم صحيح
-    const price = Math.round(coins * 0.3333); 
-    document.getElementById('priceResult').innerText = `السعر المطلوب: ${price} جنيه مصري`;
-}
-
-function openDepositModal() {
-    // تصفير الحقول قبل الفتح لضمان النظافة
-    document.getElementById('buyAmount').value = "";
-    document.getElementById('priceResult').innerText = "السعر المطلوب: 0 جنيه";
-    document.getElementById('depositModal').style.display = 'flex';
-}
-
-function closeDepositModal() {
-    document.getElementById('depositModal').style.display = 'none';
-}
-
-async function submitDeposit() {
-    const amount = document.getElementById('buyAmount').value;
-    const phone = document.getElementById('senderPhone').value;
-    const time = document.getElementById('transferTime').value;
-    const finalPrice = Math.round(amount * 0.3333); 
-
-    // الشرط الجديد: التأكد من أن الكمية لا تقل عن 15
-    if(!amount || amount < 15) {
-        return showToast("⚠️ أقل كمية شراء هي 15 عملة!");
-    }
-
-    if(!phone || !time) {
-        return showToast("⚠️ أكمل البيانات المطلوبة أولاً!");
-    }
-
-    showToast("⏳ جاري إرسال طلبك...");
-
-    try {
-        await db.collection("deposit_requests").add({
-            user_id: auth.currentUser.uid,
-            user_email: auth.currentUser.email,
-            coins_requested: parseInt(amount),
-            price_to_pay: finalPrice,
-            sender_phone: phone,
-            transfer_time: time,
-            status: "pending",
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        showToast("✅ تم إرسال الطلب بنجاح!");
-        closeDepositModal();
-    } catch (e) {
-        showToast("❌ حدث خطأ.. حاول مرة أخرى.");
-    }
-}
-
-
-
-    
-        async function confirmOrder() {
+    async function confirmOrder() {
         const pass = document.getElementById('confirmPass').value;
         const pID = document.getElementById('playerID').value;
-        
         if(!pass) return showToast("⚠️ أدخل الباسورد!");
         if(selectedProduct.type === 'request' && !pID) return showToast("⚠️ أدخل الـ ID!");
 
-        showToast("جاري المعالجة والتحقق...");
-        
+        showToast("جاري التحقق والمعالجة...");
         try {
-            // 1. إعادة التحقق من الهوية بالباسورد (أمان إضافي)
             const credential = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
             await auth.currentUser.reauthenticateWithCredential(credential);
 
-            // 2. بدء عملية التحويل (Transaction) لضمان دقة الرصيد
             await db.runTransaction(async (transaction) => {
                 const userRef = db.collection("users").doc(auth.currentUser.uid);
-                const userDoc = await transaction.get(userRef);
                 
-                if (!userDoc.exists) throw "⚠️ الحساب غير موجود!";
-                
-                const currentCoins = userDoc.data().coins || 0;
-
-                // التأكد من أن الرصيد يكفي من داخل السيرفر
-                if (currentCoins < selectedProduct.price) {
-                    throw "⚠️ عملاتك لا تكفي لإتمام هذه العملية.";
-                }
-
-                // --- الحالة الأولى: الشحن اليدوي (ID) ---
+                // 1. الشحن اليدوي (ID)
                 if(selectedProduct.type === 'request') {
-                    transaction.update(userRef, { coins: currentCoins - selectedProduct.price });
+                    transaction.update(userRef, { coins: userData.coins - selectedProduct.price });
                     transaction.set(db.collection("orders").doc(), {
                         user_id: auth.currentUser.uid,
                         user_email: auth.currentUser.email,
@@ -376,18 +303,20 @@ async function submitDeposit() {
                     document.getElementById('resultPin').style.color = "var(--gold)";
                     document.getElementById('copyBtn').style.display = 'none';
                 } 
-                // --- الحالة الثانية: نظام الأكواد الفوري (Pin) ---
+                // 2. نظام الأكواد (Pin) - تم الربط مع مجموعة codes
                 else {
-                    const codesRef = db.collection("codes")
-                                      .where("product_id", "==", selectedProduct.id)
-                                      .where("is_used", "==", false)
-                                      .limit(1);
+                    // البحث عن الكود غير المستخدم المرتبط بهذا المنتج
+const codesRef = db.collection("codes")
+                  .where("product_id", "==", selectedProduct.id) // تأكد أن الكروت في الداتابيز لها نفس هذا الـ ID
+                  .where("is_used", "==", false)
+                  .limit(1);
+
                     
                     const v = await codesRef.get();
-                    if(v.empty) throw "⚠️ نعتذر! هذا المنتج نفذ حالياً من المخزن.";
+                    if(v.empty) throw "⚠️ نعتذر! هذا المنتج نفذ حالياً.";
                     
                     const codeDoc = v.docs[0];
-                    transaction.update(userRef, { coins: currentCoins - selectedProduct.price });
+                    transaction.update(userRef, { coins: userData.coins - selectedProduct.price });
                     transaction.update(codeDoc.ref, { 
                         is_used: true, 
                         buyer_id: auth.currentUser.uid,
@@ -406,13 +335,118 @@ async function submitDeposit() {
 
         } catch (e) { 
             console.error(e);
-            // لو الخطأ سببه الباسورد أو أي حاجة تانية هيظهر هنا
-            const errorMsg = e.code === "auth/wrong-password" ? "❌ الباسورد غير صحيح!" : (e.message || e);
-            showToast(errorMsg); 
+            showToast(typeof e === 'string' ? e : "❌ عذراً! الباسورد غير صحيح"); 
         }
     }
+    let chatVisible = false;
+    function toggleChat() {
+        chatVisible = !chatVisible;
+        const win = document.getElementById('chat-window');
+        win.style.display = chatVisible ? 'flex' : 'none';
+        if(chatVisible) {
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+function calcPrice(coins) {
+        if(!coins) { document.getElementById('priceResult').innerText = "السعر المطلوب: 0 جنيه"; return; }
+        const price = Math.round(coins * 0.3333); 
+        document.getElementById('priceResult').innerText = `السعر المطلوب: ${price} جنيه مصري`;
+    }
+    function openDepositModal() {
+        document.getElementById('buyAmount').value = "";
+        document.getElementById('priceResult').innerText = "السعر المطلوب: 0 جنيه";
+        document.getElementById('depositModal').style.display = 'flex';
+    }
 
+    function closeDepositModal() { document.getElementById('depositModal').style.display = 'none'; }
 
+  async function submitDeposit() {
+    const amount = document.getElementById('buyAmount').value;
+    const phone = document.getElementById('senderPhone').value;
+    const time = document.getElementById('transferTime').value;
+    const finalPrice = Math.round(amount * 0.3333); 
+
+    if(!amount || amount < 15) {
+        return showToast("⚠️ أقل كمية شراء هي 15 عملة!");
+    }
+
+    if(!phone || !time) {
+        return showToast("⚠️ أكمل البيانات المطلوبة أولاً!");
+    }
+
+    showToast("⏳ جاري إرسال طلبك...");
+
+    try {
+        // التعديل هنا ليتوافق مع حقول الأدمن (admin.html)
+        await db.collection("deposit_requests").add({
+            user_id: auth.currentUser.uid,        // الأدمن يطلب user_id
+            user_email: auth.currentUser.email,  // الأدمن يطلب user_email
+            coins_requested: parseInt(amount),   // الأدمن يطلب coins_requested
+            price_to_pay: finalPrice,           // الأدمن يطلب price_to_pay
+            sender_phone: phone,                // الأدمن يطلب sender_phone
+            transfer_time: time,                // الأدمن يطلب transfer_time
+            status: "pending",                  // الأدمن يفلتر بـ status === "pending"
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast("✅ تم إرسال الطلب بنجاح!");
+        closeDepositModal();
+    } catch (e) {
+        console.error(e);
+        showToast("❌ حدث خطأ.. حاول مرة أخرى.");
+    }
+}
+
+    
+    function loadMessages() {
+        if(!auth.currentUser) return;
+        const container = document.getElementById('chat-messages');
+
+        if(chatUnsubscribe) chatUnsubscribe(); // تنظيف أي مستمع قديم
+
+        chatUnsubscribe = db.collection("chats")
+            .where("userId", "==", auth.currentUser.uid)
+            .orderBy("timestamp", "asc")
+            .onSnapshot(snapshot => {
+                container.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const isMe = data.sender === "user";
+                    const time = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+                    
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `msg ${isMe ? 'sent' : 'received'}`;
+                    msgDiv.innerHTML = `${data.message} <span style="display:block; font-size:0.6rem; opacity:0.6; margin-top:4px;">${time}</span>`;
+                    container.appendChild(msgDiv);
+                });
+                container.scrollTop = container.scrollHeight;
+            }, err => console.error("Chat Error:", err));
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value.trim();
+        if(!msg || !auth.currentUser) return;
+
+        await db.collection("chats").add({
+            userId: auth.currentUser.uid,
+            userEmail: auth.currentUser.email,
+            message: msg,
+            sender: "user",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        input.value = "";
+    }
+
+    async function clearChat() {
+        if(!confirm("حذف المحادثة نهائياً؟")) return;
+        const snap = await db.collection("chats").where("userId", "==", auth.currentUser.uid).get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+    }
+    
     function filterCat(cat, btn) {
         currentCat = cat;
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -426,83 +460,42 @@ async function submitDeposit() {
         showToast("✅ تم نسخ الكود بنجاح");
     }
 
-        function closeModal() { 
-        document.getElementById('buyModal').style.display = 'none';
-        document.getElementById('confirmPass').value = ""; // تنظيف الباسورد
-        document.getElementById('playerID').value = "";   // تنظيف الـ ID
-    }
+    function closeModal() { document.getElementById('buyModal').style.display = 'none'; }
 
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.innerText = msg; t.style.display = 'block';
         setTimeout(() => t.style.display = 'none', 3000);
     }
-    let chatVisible = false;
-
-function toggleChat() {
-    chatVisible = !chatVisible;
-    const win = document.getElementById('chat-window');
-    win.style.display = chatVisible ? 'flex' : 'none';
-    if(chatVisible) {
-        const container = document.getElementById('chat-messages');
-        container.scrollTop = container.scrollHeight;
-    }
-}
-
-async function sendMessage() {
-    const input = document.getElementById('chatInput');
-    const msg = input.value.trim();
-    if(!msg || !auth.currentUser) return;
-
-    try {
-        await db.collection("chats").add({
-            userId: auth.currentUser.uid,
-            userEmail: auth.currentUser.email, // مهم جداً للآدمن
-            message: msg,
-            sender: "user", // العميل يرسل كـ user
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        input.value = "";
-    } catch (e) { console.error("Error sending:", e); }
-}
-
-function loadMessages() {
-    if(!auth.currentUser) return;
-    
-    db.collection("chats")
-      .where("userId", "==", auth.currentUser.uid)
-      .orderBy("timestamp", "asc")
-      .onSnapshot(snapshot => {
-          const container = document.getElementById('chat-messages');
-          // إذا كان السناب شوت فارغاً أو لسه بيتحمل
-          if (snapshot.metadata.hasPendingWrites) return; 
-
-          container.innerHTML = "";
-          snapshot.forEach(doc => {
-              const data = doc.data();
-              const type = data.sender === "user" ? "sent" : "received";
-              container.innerHTML += `<div class="msg ${type}">${data.message}</div>`;
-          });
-          container.scrollTop = container.scrollHeight;
-      }, error => {
-          console.error("خطأ في جلب الرسائل:", error);
-      });
-}
-
-async function clearChat() {
-    if(!confirm("حذف المحادثة؟")) return;
-    const user = firebase.auth().currentUser;
-    const snap = await firebase.firestore().collection("chats").where("userId", "==", user.uid).get();
-    const batch = firebase.firestore().batch();
-    snap.forEach(doc => batch.delete(doc.ref));
-    await batch.commit();
-}
-
-// تشغيل جلب الرسائل عند التأكد من تسجيل الدخول
-firebase.auth().onAuthStateChanged(user => {
-    if (user) loadMessages();
-});
 </script>
+<div id="support-btn" onclick="toggleChat()">
+    <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png" alt="Support" id="robot-icon">
+    <span class="notification-badge" id="chatBadge" style="display:none;">!</span>
+</div>
+
+<div id="chat-window">
+    <div class="chat-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png">
+            <div>
+                <h4 style="font-size: 0.9rem; font-weight: 800; color: white;">الدعم الفني</h4>
+                <p style="font-size: 0.65rem; color: #00f2ff;"><i class="fas fa-circle" style="font-size: 5px;"></i> متصل الآن</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; color: #94a3b8;">
+            <i class="fas fa-trash-alt" onclick="clearChat()" style="cursor: pointer;"></i>
+            <i class="fas fa-times" onclick="toggleChat()" style="cursor: pointer;"></i>
+        </div>
+    </div>
+    <div id="chat-messages" style="padding: 15px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;"></div>
+    <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="اكتب سؤالك هنا..." onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+
+
 <div id="support-btn" onclick="toggleChat()">
     <img src="https://uxwing.com/wp-content/themes/uxwing/download/business-professional-services/customer-service-icon.png" alt="Support" id="robot-icon">
     <span class="notification-badge" id="chatBadge" style="display:none;">!</span>
