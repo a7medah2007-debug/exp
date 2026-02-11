@@ -253,7 +253,7 @@
             
             if (prize.type === 'retry') {
                 isFreeRetry = true;
-                alert("مبروك! حصلت على لفة مجانية إضافية.");
+                
             } else if (prize.val > 0) {
                 await db.collection("users").doc(auth.currentUser.uid).update({
                     coins: firebase.firestore.FieldValue.increment(prize.val)
