@@ -627,10 +627,10 @@
         }
 
         await db.collection("users").doc(auth.currentUser.uid).update({
-            coins: firebase.firestore.FieldValue.increment(5), // زودنا المكافأة لـ 5 عملات
+            coins: firebase.firestore.FieldValue.increment(1), // زودنا المكافأة لـ 5 عملات
             lastGiftDate: today
         });
-        notify("🎁 مبروك! حصلت على 5 عملات ");
+        notify("🎁 مبروك! حصلت على  عمله ");
     }
 
 
