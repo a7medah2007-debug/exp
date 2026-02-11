@@ -179,26 +179,35 @@ const AD_CODES = [
 const ADSTERRA_DIRECT_LINK = "https://ballisticcomainvitation.com/k0eagxazc?key=003f66bbb890eceef1381c08b579649f"; 
 
 // 2. دالة عرض الإعلانات بطريقة احترافية داخل iframe لضمان التشغيل
+// 2. دالة عرض الإعلانات المطورة (بدون iframe لضمان الأرباح والظهور)
 function displayRandomAd() {
     const slot = document.getElementById('ad-slot');
     const randomAdCode = AD_CODES[Math.floor(Math.random() * AD_CODES.length)];
     
-    // إنشاء iframe لحقن السكربت بداخله بأمان
-    const iframe = document.createElement('iframe');
-    iframe.style.width = "100%";
-    iframe.style.height = "100%";
-    iframe.style.border = "none";
-    
+    // تنظيف المنطقة
     slot.innerHTML = ""; 
-    slot.appendChild(iframe);
     
-    // حقن الكود داخل الـ iframe باستخدام srcdoc
-    iframe.srcdoc = `
-        <body style="margin:0; background:black; display:flex; justify-content:center; align-items:center; height:100vh;">
-            ${randomAdCode}
-        </body>
-    `;
+    // تحويل الكود النصي إلى عناصر DOM وحقن السكربتات يدوياً ليقبلها المتصفح
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = randomAdCode;
+    
+    const scripts = tempDiv.getElementsByTagName('script');
+    for (let oldScript of scripts) {
+        const newScript = document.createElement('script');
+        
+        // نسخ الخصائص (مثل src أو data-cfasync)
+        Array.from(oldScript.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value);
+        });
+        
+        // نسخ الكود البرمجي نفسه
+        newScript.textContent = oldScript.textContent;
+        
+        // حقن السكربت في الصفحة لتفعيله فوراً
+        slot.appendChild(newScript);
+    }
 }
+
 
 // 3. مراقبة مغادرة الصفحة لتصفير العداد
 document.addEventListener("visibilitychange", function() {
@@ -213,7 +222,7 @@ function resetTask() {
     isLocked = false;
     document.getElementById('timer-overlay').style.display = 'none';
     document.getElementById('startBtn').disabled = false;
-    document.getElementById('ad-slot').innerHTML = `<p style="color:#ff4444; font-size:0.9rem; padding:10px;">❌ تم تصفير العداد لخروجك من الصفحة!</p>`;
+    document.getElementById('ad-slot').innerHTML = `<p style="color:#ff4444; font-size:0.9rem; padding:10px;">❌ تم الغاء الاعلان لخروجك من الصفحة!</p>`;
     document.getElementById('msg').innerText = "يجب البقاء في الصفحة حتى انتهاء الوقت";
 }
 
